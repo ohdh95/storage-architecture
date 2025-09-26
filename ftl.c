@@ -92,10 +92,12 @@ that you issue in this function
             }
         }
 
-        // GC trigger
-        if (block == -1 && page == -1) {
+        for (int i = 0; i < nsect; i++) {
+        
         }
-        nand_write();
     }
+
+    
+
     return;
 }
