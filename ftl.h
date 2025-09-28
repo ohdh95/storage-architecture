@@ -24,7 +24,7 @@ typedef unsigned int u32;
 #define PAGES_PER_BLK		4
 
 #define SECTOR_SIZE		sizeof(u32)
-#define SECTORS_PER_PAGE	(PAGE_DATA_SIZE / SECTOR_SIZE)
+#define SECTORS_PER_PAGE	(PAGE_DATA_SIZE / SECTOR_SIZE) // 8
 
 #define N_GC_BLOCKS		1
 
