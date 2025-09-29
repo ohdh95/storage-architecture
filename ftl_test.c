@@ -10,7 +10,25 @@
  *
  */
 
-#include "lab2_tc/ftl5.h"
+#if defined(VERSION_V0)
+    #include "ftl.h"
+#elif defined(VERSION_V1)
+    #include "lab2_tc/ftl1.h"
+#elif defined(VERSION_V2)
+    #include "lab2_tc/ftl2.h"
+#elif defined(VERSION_V3)
+    #include "lab2_tc/ftl3.h"
+#elif defined(VERSION_V4)
+    #include "lab2_tc/ftl4.h"
+#elif defined(VERSION_V5)
+    #include "lab2_tc/ftl5.h"
+#elif defined(VERSION_V6)
+    #include "lab2_tc/ftl6.h"
+#elif defined(VERSION_V7)
+    #include "lab2_tc/ftl7.h"
+#elif defined(VERSION_V8)
+    #include "lab2_tc/ftl8.h"
+#endif
 
 struct ftl_stats stats;
 

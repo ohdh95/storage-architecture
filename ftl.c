@@ -9,7 +9,28 @@
  * http://nyx.skku.ac.kr
  */
 
-#include "lab2_tc/ftl5.h"
+// #include "ftl.h"
+// #include "lab2_tc/ftl2.h"
+#if defined(VERSION_V0)
+    #include "ftl.h"
+#elif defined(VERSION_V1)
+    #include "lab2_tc/ftl1.h"
+#elif defined(VERSION_V2)
+    #include "lab2_tc/ftl2.h"
+#elif defined(VERSION_V3)
+    #include "lab2_tc/ftl3.h"
+#elif defined(VERSION_V4)
+    #include "lab2_tc/ftl4.h"
+#elif defined(VERSION_V5)
+    #include "lab2_tc/ftl5.h"
+#elif defined(VERSION_V6)
+    #include "lab2_tc/ftl6.h"
+#elif defined(VERSION_V7)
+    #include "lab2_tc/ftl7.h"
+#elif defined(VERSION_V8)
+    #include "lab2_tc/ftl8.h"
+#endif
+
 
 u32 pmt[N_LPNS];
 int used[N_BANKS][BLKS_PER_BANK * PAGES_PER_BLK];
@@ -253,7 +274,9 @@ that you issue in this function
         u32* buf = (u32*)malloc(SECTOR_SIZE * SECTORS_PER_PAGE);
         int tmp_lpn = lpn;
         if (lba % SECTORS_PER_PAGE != 0) {
-            ftl_read(lba - (lba % SECTORS_PER_PAGE), lba % SECTORS_PER_PAGE, buf);
+            // ftl_read(lba - (lba % SECTORS_PER_PAGE), lba % SECTORS_PER_PAGE, buf);
+            nand_read(bank, block, page, buf, &tmp_lpn);
+            stats.nand_read++;
             // printf("old data bank: %d, page: %d\n", bank, block * PAGES_PER_BLK + page);
         }
         
@@ -305,7 +328,7 @@ that you issue in this function
                 page = addr % PAGES_PER_BLK;
                 u32* tmp_buf = (u32*)malloc(SECTOR_SIZE * SECTORS_PER_PAGE);
                 nand_read(bank, block, page, tmp_buf, &tmp_lpn);
-                // stats.nand_read++;
+                stats.nand_read++;
 
                 for (int i = nsect;; i++) {
                     buf[(lba + i) % SECTORS_PER_PAGE] = tmp_buf[(lba + i) % SECTORS_PER_PAGE];
