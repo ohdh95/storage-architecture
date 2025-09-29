@@ -10,7 +10,7 @@
  *
  */
 
-#include "ftl.h"
+#include "lab2_tc/ftl5.h"
 
 struct ftl_stats stats;
 

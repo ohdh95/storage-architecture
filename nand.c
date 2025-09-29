@@ -15,6 +15,7 @@
 
 #include "nand.h"
 
+#define DEBUG 1
 /*
  * define your own data structure for NAND flash implementation
  */
@@ -36,6 +37,8 @@ int NPAGES = -1;
 int nand_init(int nbanks, int nblks, int npages)
 {
 	if (nbanks < 0 || nblks < 0 || npages < 0) {
+		if (DEBUG)
+			printf("NAND_ERR_INVALID_INIT\n");
 		return NAND_ERR_INVALID;
 	}
 
@@ -67,6 +70,8 @@ int nand_write(int bank, int blk, int page, void *data, void *spare)
 	int addr = bank * NBLKS * NPAGES + blk * NPAGES + page;
 
 	if (map[addr] == 1) {
+		if (DEBUG)
+			printf("NAND_ERR_OVERWRITE_WRITE\n");
 		return NAND_ERR_OVERWRITE;
 	}
 
@@ -74,6 +79,8 @@ int nand_write(int bank, int blk, int page, void *data, void *spare)
 
 	for (int i = 0; i < (addr % NPAGES); i++) {
 		if (map[startBlock + i] == 0) {
+			if (DEBUG)
+				printf("NAND_ERR_POSITION_WRITE\n");
 			return NAND_ERR_POSITION;
 		}
 	}
@@ -100,12 +107,16 @@ int nand_write(int bank, int blk, int page, void *data, void *spare)
 int nand_read(int bank, int blk, int page, void *data, void *spare)
 {
 	if (bank < 0 || blk < 0 || page < 0 || bank >= NBANKS || blk >= NBLKS || page >=NPAGES) {
+		if (DEBUG)
+			printf("NAND_ERR_INVALID_READ\n");
 		return NAND_ERR_INVALID;
 	}
 
 	int addr = bank * NBLKS * NPAGES + blk * NPAGES + page;
 
 	if (map[addr] == 0) {
+		if (DEBUG)
+			printf("NAND_ERR_EMPTY_READ\n");
 		return NAND_ERR_EMPTY;
 	}
 
@@ -128,6 +139,8 @@ int nand_read(int bank, int blk, int page, void *data, void *spare)
 int nand_erase(int bank, int blk)
 {
 	if (bank < 0 || blk < 0 || bank >= NBANKS || blk >= NBLKS) {
+		if (DEBUG)
+			printf("NAND_ERR_INVALID_ERASE\n");
 		return NAND_ERR_INVALID;
 	}
 
@@ -141,6 +154,8 @@ int nand_erase(int bank, int blk)
 	}
 
 	if (flag == 0) {
+		if (DEBUG)
+			printf("NAND_ERR_EMPTY_ERASE\n");
 		return NAND_ERR_EMPTY;
 	}
 

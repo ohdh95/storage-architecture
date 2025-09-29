@@ -1,13 +1,13 @@
-Bank: 2
-Blocks / Bank: 8 blocks
-Pages / Block: 4 pages
+Bank: 8
+Blocks / Bank: 32 blocks
+Pages / Block: 16 pages
 Sectors per Page: 8
 OP ratio: 7%
-Physical Blocks: 16
-User Blocks: 12
-OP Blocks: 4
-PPNs: 64
-LPNs: 48
+Physical Blocks: 256
+User Blocks: 224
+OP Blocks: 32
+PPNs: 4096
+LPNs: 3584
 
 Write(0,16): [ b4 a2  8 87  2 e5 bb 3d c7 e6 98 e4 df dc ce f4 ]
 Read(0,16): [ b4 a2  8 87  2 e5 bb 3d c7 e6 98 e4 df dc ce f4 ]
@@ -94,13 +94,13 @@ Write(228,8): [ 1d c9 b9 a5 d2 99 99 a5 ]
 Write(236,8): [ 47 27 65 bc e3  0 61  b ]
 Write(244,8): [ bd 29 be 6a fe e9 dd 5f ]
 Write(252,8): [ 79 8b 83  f e7 88 e1  4 ]
-Read(0,16): [ b4 a2  8 87  2 e5 bb 3d c7 e6 98 e4 df dc ce f4 ]
-Read(176,16): [ 5a983135 56c0  0  0 df dc ce f4 5a983135 56c0  0  0 df dc ce f4 ]
+Read(0,16): [ 1d 34 e1 7f 1f 91 79 ee 21 4f 8b a6 f7 c4  c e1 ]
+Read(176,16): [ ed c6 2e da 31 6c 22 22 8b f0  d 78 c6 8b 65 3b ]
 
 Results ------
 Host read: 143(sectors), write: 698(sectors)
 Nand read: 25(pages), write: 99(pages)
-GC read: 18, GC write: 18
-Number of GCs: 14
-Valid copies per GC: 1.29 pages
-WAF: 1.21
+GC read: 0, GC write: 0
+Number of GCs: 0
+Valid copies per GC: -nan pages
+WAF: 1.00
