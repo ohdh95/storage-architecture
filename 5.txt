@@ -15610,8 +15610,8 @@ Read(28608,64): [ 69 22 b9 ea e8 71 1f 61 5b ba e2 f6 8e 80 da 37 7c 55 98 44 45
 
 Results ------
 Host read: 114688(sectors), write: 71662(sectors)
-Nand read: 22533(pages), write: 12276(pages)
-GC read: 7890, GC write: 7890
-Number of GCs: 1013
-Valid copies per GC: 7.79 pages
-WAF: 1.88
+Nand read: 21007(pages), write: 12276(pages)
+GC read: 8203, GC write: 8203
+Number of GCs: 1033
+Valid copies per GC: 7.94 pages
+WAF: 1.92

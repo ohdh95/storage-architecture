@@ -1,0 +1,25 @@
+Bank: 2
+Blocks / Bank: 8 blocks
+Pages / Block: 4 pages
+Sectors per Page: 8
+OP ratio: 7%
+Physical Blocks: 16
+User Blocks: 12
+OP Blocks: 4
+PPNs: 64
+LPNs: 48
+
+Write(0,4): [ b4 a2  8 87 ]
+Read(0,8): [ b4 a2  8 87 ff  0  0  0 ]
+Write(8,4): [  2 e5 bb 3d ]
+Write(16,4): [ c7 e6 98 e4 ]
+Write(24,4): [ df dc ce f4 ]
+Read(0,32): [ b4 a2  8 87 ff  0  0  0  2 e5 bb 3d ff  0  0  0 c7 e6 98 e4 ff  0  0  0 df dc ce f4 ff  0  0  0 ]
+
+Results ------
+Host read: 40(sectors), write: 16(sectors)
+Nand read: 5(pages), write: 4(pages)
+GC read: 0, GC write: 0
+Number of GCs: 0
+Valid copies per GC: -nan pages
+WAF: 1.00

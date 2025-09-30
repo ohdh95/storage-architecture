@@ -1,0 +1,4 @@
+421c421
+< Nand read: 284(pages), write: 191(pages)
+---
+> Nand read: 379(pages), write: 191(pages)

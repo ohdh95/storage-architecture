@@ -11,6 +11,7 @@
 
 // #include "ftl.h"
 // #include "lab2_tc/ftl2.h"
+
 #if defined(VERSION_V0)
     #include "ftl.h"
 #elif defined(VERSION_V1)
@@ -80,10 +81,9 @@ that you issue in this function
         if (used[bank][victim * PAGES_PER_BLK + i] == 1) {
             u32* buf = (u32*)malloc(SECTOR_SIZE * SECTORS_PER_PAGE);
             u32 spare;
-            // printf("GC copy read: victim: %d, bank: %d, block: %d, page: %d\n", victim, bank, victim / PAGES_PER_BLK, victim % PAGES_PER_BLK);
+            // printf("GC copy read: bank: %d, block: %d, page: %d\n", bank, victim, i);
             nand_read(bank, victim, i, buf, &spare);
             stats.gc_read++;
-
             int copy_block = -1;
             int copy_page = -1;
 
@@ -99,7 +99,7 @@ that you issue in this function
 
             
             nand_write(bank, copy_block, copy_page, buf, &spare);
-            // printf("GC copy: bank: %d, block: %d, page: %d, spare: %d, pmt[spare - before]: %d, ", bank, copy_block, copy_page, spare, pmt[spare]);
+            // printf("GC copy write: bank: %d, block: %d, page: %d, spare: %d, pmt[spare - before]: %d\n", bank, copy_block, copy_page, spare, pmt[spare]);
             stats.gc_write++;
 
             pmt[spare] = bank * N_PPNS_PB + copy_block * PAGES_PER_BLK + copy_page;
@@ -264,168 +264,116 @@ for every nand_write call
 that you issue in this function
 ***************************************/
     u32 lpn = lba / SECTORS_PER_PAGE;
+    int bank;
+    int block;
+    int page;
+    int addr;
+    u32* buf = (u32*)malloc(SECTOR_SIZE * SECTORS_PER_PAGE);
 
-    // old data exists
-    if (pmt[lpn] != -1) {
-        int bank = lpn % N_BANKS;
-        int addr = pmt[lpn] - bank * N_PPNS_PB;
-        int block = addr / PAGES_PER_BLK;
-        int page = addr % PAGES_PER_BLK;
-        u32* buf = (u32*)malloc(SECTOR_SIZE * SECTORS_PER_PAGE);
-        int tmp_lpn = lpn;
-        if (lba % SECTORS_PER_PAGE != 0) {
-            // ftl_read(lba - (lba % SECTORS_PER_PAGE), lba % SECTORS_PER_PAGE, buf);
-            nand_read(bank, block, page, buf, &tmp_lpn);
+    // 첫 page alignment이 안된 경우
+    if (lba % SECTORS_PER_PAGE != 0) {
+        // old data exists
+        if (pmt[lpn] != -1) {
+            bank = lpn % N_BANKS;
+            addr = pmt[lpn] - bank * N_PPNS_PB;
+            block = addr / PAGES_PER_BLK;
+            page = addr % PAGES_PER_BLK;
+            
+            nand_read(bank, block, page, buf, &lpn);
+        }
+
+        // no old data
+        else {
+            memset(buf, 0xff, (lba % SECTORS_PER_PAGE) * SECTOR_SIZE);
+        }
+    }
+
+    for (int i = 0; i < nsect; i++) {
+        buf[(lba + i) % SECTORS_PER_PAGE] = write_buffer[i];
+        // printf("writer_buffer[%d]: %x\n", i, write_buffer[i]);
+
+        // buffer 다 채우고 page write
+        if ((lba + i) % SECTORS_PER_PAGE == SECTORS_PER_PAGE - 1) {
+            int write_lpn = (lba + i) / SECTORS_PER_PAGE;
+
+            find_next_page(&bank, &block, &page, write_lpn);
+            addr = bank * N_PPNS_PB + block * PAGES_PER_BLK + page;
+
+            // old page invalid
+            if (pmt[write_lpn] != -1) {
+                int old_bank = write_lpn % N_BANKS;
+                int old_addr = pmt[write_lpn] - old_bank * N_PPNS_PB;
+                int old_block = old_addr / PAGES_PER_BLK;
+                int old_page = old_addr % PAGES_PER_BLK;
+
+                used[old_bank][old_block * PAGES_PER_BLK + old_page] = -1;
+            }
+
+            pmt[write_lpn] = addr;
+            // for (int j = 0; j < 8; j++) {
+            //     // printf("%x ", buf[j]);
+            // }
+            // printf("\n");
+            // printf("bank: %d, block: %d, page: %d, pmt[lpn]: %d\n", bank, block, page, pmt[lpn]);
+            nand_write(bank, block, page, buf, &write_lpn);
+            stats.nand_write++;
+        }
+    }
+
+    if ((lba + nsect - 1) % SECTORS_PER_PAGE != SECTORS_PER_PAGE - 1) {
+        int write_lpn = (lba + nsect - 1) / SECTORS_PER_PAGE;
+
+        // old data exists
+        if (pmt[write_lpn] != -1) {
+            int old_bank = write_lpn % N_BANKS;
+            int old_addr = pmt[write_lpn] - old_bank * N_PPNS_PB;
+            int old_block = old_addr / PAGES_PER_BLK;
+            int old_page = old_addr % PAGES_PER_BLK;
+            u32* tmp_buf = (u32*)malloc(SECTOR_SIZE * SECTORS_PER_PAGE);
+
+            nand_read(old_bank, old_block, old_page, tmp_buf, &write_lpn);
             stats.nand_read++;
-            // printf("old data bank: %d, page: %d\n", bank, block * PAGES_PER_BLK + page);
-        }
-        
-        used[bank][block * PAGES_PER_BLK + page] = -1;
 
-        for (int i = 1; i < nsect; i++) {
-            if ((lba + i) % SECTORS_PER_PAGE == 0) {
-                tmp_lpn++;
-                bank = tmp_lpn % N_BANKS;
-                addr = pmt[tmp_lpn] - bank * N_PPNS_PB;
-                block = addr / PAGES_PER_BLK;
-                page = addr % PAGES_PER_BLK;
+            for (int i = lba + nsect;; i++) {
+                buf[i % SECTORS_PER_PAGE] = tmp_buf[(lba + i) % SECTORS_PER_PAGE];
 
-                if (used[bank][block * PAGES_PER_BLK + page] == 1) {
-                    // printf("old data bank: %d, page: %d\n", bank, block * PAGES_PER_BLK + page);
-                    used[bank][block * PAGES_PER_BLK + page] = -1;
-                }
-            }
-        }
-        
-
-        for (int i = 0; i < nsect; i++) {
-            buf[(lba + i) % SECTORS_PER_PAGE] = write_buffer[i];
-            // printf("writer_buffer[%d]: %x\n", i, write_buffer[i]);
-
-            if ((lba + i) % SECTORS_PER_PAGE == SECTORS_PER_PAGE - 1) {
-                find_next_page(&bank, &block, &page, lpn);
-                addr = bank * N_PPNS_PB + block * PAGES_PER_BLK + page;
-                pmt[lpn] = addr;
-                // for (int j = 0; j < 8; j++) {
-                //     // printf("%x ", buf[j]);
-                // }
-                // printf("\n");
-                // printf("bank: %d, block: %d, page: %d, pmt[lpn]: %d\n", bank, block, page, pmt[lpn]);
-                nand_write(bank, block, page, buf, &lpn);
-                stats.nand_write++;
-
-                lpn++;
-            }
-        }
-
-        if ((lba + nsect - 1) % SECTORS_PER_PAGE != SECTORS_PER_PAGE - 1) {
-            tmp_lpn = (lba + nsect - 1) / SECTORS_PER_PAGE;
-
-            if (pmt[tmp_lpn] != -1) {
-                bank = tmp_lpn % N_BANKS;
-                addr = pmt[tmp_lpn] - bank * N_PPNS_PB;
-                block = addr / PAGES_PER_BLK;
-                page = addr % PAGES_PER_BLK;
-                u32* tmp_buf = (u32*)malloc(SECTOR_SIZE * SECTORS_PER_PAGE);
-                nand_read(bank, block, page, tmp_buf, &tmp_lpn);
-                stats.nand_read++;
-
-                for (int i = nsect;; i++) {
-                    buf[(lba + i) % SECTORS_PER_PAGE] = tmp_buf[(lba + i) % SECTORS_PER_PAGE];
-
-                    if ((lba + i) % SECTORS_PER_PAGE == SECTORS_PER_PAGE - 1) {
-                        find_next_page(&bank, &block, &page, lpn);
-                        addr = bank * N_PPNS_PB + block * PAGES_PER_BLK + page;
-                        pmt[lpn] = addr;
-                        // printf("bank: %d, block: %d, page: %d, pmt[lpn]: %d\n", bank, block, page, pmt[lpn]);
-                        nand_write(bank, block, page, buf, &lpn);
-                        stats.nand_write++;
-                        break;
-                    }
-                }
-
-                free(tmp_buf);
-            }
-            
-            else {
-                for (int i = nsect;; i++) {
-                    buf[(lba + i) % SECTORS_PER_PAGE] = 0xffffffff;
-
-                    if ((lba + i) % SECTORS_PER_PAGE == SECTORS_PER_PAGE - 1) {
-                        find_next_page(&bank, &block, &page, lpn);
-                        addr = bank * N_PPNS_PB + block * PAGES_PER_BLK + page;
-                        pmt[lpn] = addr;
-                        // printf("bank: %d, block: %d, page: %d, pmt[lpn]: %d\n", bank, block, page, pmt[lpn]);
-                        nand_write(bank, block, page, buf, &lpn);
-                        stats.nand_write++;
-                        break;
-                    }
-                }
-            }
-        }
-
-        free(buf);
-    }
-
-    // old data does not exist
-    else if (pmt[lpn] == -1) {
-        int bank;
-        int block;
-        int page;
-        int addr;
-        u32* buf = (u32*)malloc(SECTOR_SIZE * SECTORS_PER_PAGE);
-
-        memset(buf, 0xff, (lba % SECTORS_PER_PAGE) * SECTOR_SIZE);
-
-        for (int i = 0; i < nsect; i++) {
-            
-            buf[(lba + i) % SECTORS_PER_PAGE] = write_buffer[i];
-
-            if ((lba + i) % SECTORS_PER_PAGE == SECTORS_PER_PAGE - 1) {
-                find_next_page(&bank, &block, &page, lpn);
-
-                addr = bank * N_PPNS_PB + block * PAGES_PER_BLK + page;
-
-                pmt[lpn] = addr;
-                // printf("bank: %d, block: %d, page: %d, pmt[lpn]: %d\n", bank, block, page, pmt[lpn]);
-                // for (int j = 0; j < 8; j++) {
-                //     // printf("%x ", buf[j]);
-                // }
-                // printf("\n");
-                // printf("bank: %d, block: %d, page: %d, pmt[lpn]: %d\n", bank, block, page, pmt[lpn]);
-                nand_write(bank, block, page, buf, &lpn);
-                stats.nand_write++;
-
-                lpn++;
-            }
-        }
-
-        if ((lba + nsect - 1) % SECTORS_PER_PAGE != SECTORS_PER_PAGE - 1) {
-            for (int i = nsect;; i++) {
-                buf[(lba + i) % SECTORS_PER_PAGE] = 0xffffffff;
-
-                if ((lba + i) % SECTORS_PER_PAGE == SECTORS_PER_PAGE - 1) {
-                    find_next_page(&bank, &block, &page, lpn);
-
-                    addr = bank * N_PPNS_PB + block * PAGES_PER_BLK + page;
-
-                    pmt[lpn] = addr;
-                    // for (int j = 0; j < 8; j++) {
-                    //     // printf("%x ", buf[j]);
-                    // }
-                    // printf("\n");
-                    // printf("bank: %d, block: %d, page: %d, pmt[lpn]: %d\n", bank, block, page, pmt[lpn]);
-                    nand_write(bank, block, page, buf, &lpn);
-                    stats.nand_write++;
+                if (i % SECTORS_PER_PAGE == SECTORS_PER_PAGE - 1)
                     break;
-                }
             }
         }
 
-        free(buf);
-    }
+        // no old data
+        else {
+            for (int i = lba + nsect;; i++) {
+                buf[i % SECTORS_PER_PAGE] = 0xff;
 
-    
+                if (i % SECTORS_PER_PAGE != SECTORS_PER_PAGE - 1)
+                    break;
+            }
+        }
+
+        find_next_page(&bank, &block, &page, write_lpn);
+        addr = bank * N_PPNS_PB + block * PAGES_PER_BLK + page;
+
+        // old page invalid
+        if (pmt[write_lpn] != -1) {
+            int old_bank = write_lpn % N_BANKS;
+            int old_addr = pmt[write_lpn] - old_bank * N_PPNS_PB;
+            int old_block = old_addr / PAGES_PER_BLK;
+            int old_page = old_addr % PAGES_PER_BLK;
+
+            used[old_bank][old_block * PAGES_PER_BLK + old_page] = -1;
+        }
+
+        pmt[write_lpn] = addr;
+        // for (int j = 0; j < 8; j++) {
+        //     // printf("%x ", buf[j]);
+        // }
+        // printf("\n");
+        // printf("bank: %d, block: %d, page: %d, pmt[lpn]: %d\n", bank, block, page, pmt[lpn]);
+        nand_write(bank, block, page, buf, &write_lpn);
+        stats.nand_write++;
+    }
 
     return;
 }

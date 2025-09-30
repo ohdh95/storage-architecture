@@ -325,7 +325,6 @@ Write(26,15): [ 85 3d c3 bd c3 56 a7  a ea ad 19 fa c6  1 2c ]
 Write(41,5): [ f0 82 aa a4 22 ]
 Write(46,23): [  4 4f c5 ef bb  d 8b 8e 1f 69 72 a4 a6 35 61 6a 8c  8 74 76 b5 8d 71 ]
 Write(69,15): [ 7c 8e 9d 6c 11 47 10 33 4b 60 f8 3a 1b  6 c5 ]
-NAND_ERR_EMPTY_READ
 Write(84,27): [ aa 25 2e 1c c9 d5 52 2a 3f de 32 b3 54 e7 40 c5 63 ce 63 cf df aa e0 12 f6 40  b ]
 Write(111,12): [ 30 5b 11 f6  5 36 24 22 ff f9 74 29 ]
 Write(123,18): [ 38 52 5b eb a6 42 2b 6c a6 fa cf 75 d9 79 55 ec 6f 95 ]
@@ -333,7 +332,6 @@ Write(141,23): [ f7 a0 f1  8 96 f6 3e ba 18 3d b4 8c 66 ec de c1 d8 85  3  3 f1 
 Write(164,21): [ c0 1f d7 39 74 c3 a9  a ba 49 fb c2 df f1  0 99  a 3d 4d 96 a3 ]
 Write(185,8): [ 3a 75 64 12 fa 67 15 eb ]
 Write(193,3): [ 11 13 ab ]
-NAND_ERR_EMPTY_READ
 Write(196,27): [ 30 ea e4 a4 ad 8d ae 67 d6 a9 29 b5 9b 29 4f a5 66 9c 3b  9 d6 b0 6d e8 aa d4 fe ]
 Write(223,13): [ 95 e5 11 40 15 fb 25 ba a8 b2 68  f 89 ]
 Write(236,17): [ 12 38 3e ad 61 8d 52 c7 2a 8d d0  0 3e 3d e9 e8 11 ]
@@ -342,7 +340,6 @@ Write(282,15): [ f4 28 e5 72 1f dd 30 2c d0 14 f2 6b aa 21 15 ]
 Write(297,9): [ c9 62 f7 26 50 3a 11 90 44 ]
 Write(306,4): [ 26 5e 1e 3c ]
 Write(310,27): [ 69 35 3a 5d 5e 20 cf 7d fd  0 a9 ce 14 9c 39 be bd 4f 87 20 46 ad 70 81 bf  1 c5 ]
-NAND_ERR_EMPTY_READ
 Write(337,22): [ e5 5f e4 21 c8 19 5c 26 77 7c f5 f5 79 f5 9e 47  9 3a 81 c7 f8 d0 ]
 Write(359,27): [ 4e 18 16 fc 88 97 bb 89 5d a0 e8 41 c2 b1 5a 1e d7 d2 9a cc c7 13 c2 65 5b cb a0 ]
 Write(386,10): [ dc 93 98 ac e1 b0 c2 dd 38 5a ]
@@ -360,12 +357,9 @@ Write(582,21): [ b2 4f f4 d0 9f 52 7b 81 49 53 32 f4 bb 5e 24 1b 4c 86 3a 96 bf 
 Write(603,17): [ 9d  3  f 8d 5d 28 87 2b 80 77 dd cf 6b ad 6e bd 29 ]
 Write(620,5): [ ef  7 7c 21 fb ]
 Write(625,20): [ 37 7f 1f 53 cb a5 8d 61 65 2b 65 74 b8 c2 9c 3f ed 1c b6 ca ]
-NAND_ERR_EMPTY_READ
 Write(645,31): [ eb 21 78 59 de a1 48 e5 1d 69 e1 54 e8  0 a7 b3 a6 35 14  b 60 79 7f 18 3c 1b 57 29 37  d f4 ]
-NAND_ERR_EMPTY_READ
 Write(676,31): [ 22 2e 6c 7b  c  d c3 f2 2a 2c d3 7e 14 d3 26 c7 79 5b db 84 bb 55  3 d3 91 1e 2a ba 55 37 ae ]
 Write(707,1): [ 77 ]
-NAND_ERR_EMPTY_READ
 Write(708,19): [ 65 1a f2 71 27 b5 63 51 e1 36 d0 f5  a f6 bc 83 51 98  8 ]
 Write(727,9): [  c ed  b df 7e 2a  9 38 7f ]
 Write(736,12): [ 40 e7 f7 a5  1 e9 16 29 9f 7a 7a 80 ]
@@ -440,8 +434,8 @@ Read(704,64): [ 55 37 ae 77 65 1a f2 71 27 b5 63 51 e1 36 d0 f5  a f6 bc 83 51 9
 
 Results ------
 Host read: 3062(sectors), write: 1896(sectors)
-Nand read: 603(pages), write: 323(pages)
-GC read: 132, GC write: 132
-Number of GCs: 43
-Valid copies per GC: 3.07 pages
-WAF: 1.56
+Nand read: 565(pages), write: 323(pages)
+GC read: 203, GC write: 203
+Number of GCs: 52
+Valid copies per GC: 3.90 pages
+WAF: 1.86

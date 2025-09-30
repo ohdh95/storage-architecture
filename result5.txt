@@ -1,0 +1,4 @@
+15613c15613
+< Nand read: 21007(pages), write: 12276(pages)
+---
+> Nand read: 24589(pages), write: 12276(pages)

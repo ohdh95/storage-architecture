@@ -418,7 +418,7 @@ Read(704,32): [ bd b9 46 71  0 1c c8 7c 6e 35  8 b7 12 d9 22 10 26 28 29 f8 98 4
 
 Results ------
 Host read: 2272(sectors), write: 1148(sectors)
-Nand read: 379(pages), write: 191(pages)
+Nand read: 284(pages), write: 191(pages)
 GC read: 0, GC write: 0
 Number of GCs: 10
 Valid copies per GC: 0.00 pages

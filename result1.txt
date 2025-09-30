@@ -1,0 +1,4 @@
+102c102
+< Nand read: 25(pages), write: 99(pages)
+---
+> Nand read: 71(pages), write: 99(pages)

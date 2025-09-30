@@ -99,8 +99,8 @@ Read(176,16): [ 8e 8a 32 4e 99 50 c5 a3 15 22 e7 14 7a 1a 1c ea ]
 
 Results ------
 Host read: 98(sectors), write: 698(sectors)
-Nand read: 37(pages), write: 99(pages)
-GC read: 8, GC write: 8
-Number of GCs: 13
-Valid copies per GC: 0.62 pages
-WAF: 1.09
+Nand read: 25(pages), write: 99(pages)
+GC read: 11, GC write: 11
+Number of GCs: 14
+Valid copies per GC: 0.79 pages
+WAF: 1.13
