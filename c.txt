@@ -9,16 +9,14 @@ OP Blocks: 4
 PPNs: 64
 LPNs: 48
 
-Write(0,4): [ b4 a2  8 87 ]
-Read(0,8): [ b4 a2  8 87 ff  0  0  0 ]
-Write(8,4): [  2 e5 bb 3d ]
-Write(16,4): [ c7 e6 98 e4 ]
-Write(24,4): [ df dc ce f4 ]
-Read(0,32): [ b4 a2  8 87 ff  0  0  0  2 e5 bb 3d ff  0  0  0 c7 e6 98 e4 ff  0  0  0 df dc ce f4 ff  0  0  0 ]
+Write(0,40): [ b4 a2  8 87  2 e5 bb 3d c7 e6 98 e4 df dc ce f4 d1 9c e2 41 64 a6 60 af ea 63  6 a4 d3 81 36 87 23 3e  f 25 23 ca 62 eb ]
+Read(0,40): [ b4 a2  8 87  2 e5 bb 3d c7 e6 98 e4 df dc ce f4 d1 9c e2 41 64 a6 60 af ea 63  6 a4 d3 81 36 87 23 3e  f 25 23 ca 62 eb ]
+Write(0,37): [ b0 fa cf 90 d6 9d 84 a8 39 66 e9 9e  d 49 4d f7 ad 54 9b 80 d5 d2  7 f8 10 16 1d 34 e1 7f 1f 91 79 ee 21 4f 8b ]
+Read(0,40): [ b0 fa cf 90 d6 9d 84 a8 39 66 e9 9e  d 49 4d f7 ad 54 9b 80 d5 d2  7 f8 10 16 1d 34 e1 7f 1f 91 79 ee 21 4f 8b ca 62 eb ]
 
 Results ------
-Host read: 40(sectors), write: 16(sectors)
-Nand read: 5(pages), write: 4(pages)
+Host read: 80(sectors), write: 77(sectors)
+Nand read: 11(pages), write: 10(pages)
 GC read: 0, GC write: 0
 Number of GCs: 0
 Valid copies per GC: -nan pages

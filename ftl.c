@@ -10,7 +10,6 @@
  */
 
 // #include "ftl.h"
-// #include "lab2_tc/ftl2.h"
 
 #if defined(VERSION_V0)
     #include "ftl.h"
@@ -84,6 +83,7 @@ that you issue in this function
             // printf("GC copy read: bank: %d, block: %d, page: %d\n", bank, victim, i);
             nand_read(bank, victim, i, buf, &spare);
             stats.gc_read++;
+
             int copy_block = -1;
             int copy_page = -1;
 
@@ -207,47 +207,87 @@ stats.nand_read++;
 for every nand_read call 
 that you issue in this function
 ***************************************/
-    u32 lpn = lba / SECTORS_PER_PAGE;
+    // u32 lpn = lba / SECTORS_PER_PAGE;
+    u32* buf = (u32*)malloc(SECTOR_SIZE * SECTORS_PER_PAGE);
+    
+    for (int i = 0; i < nsect; i++) {
+        if (i == 0 || (lba + i) % SECTORS_PER_PAGE == 0) {
+            if (pmt[(lba + i) / SECTORS_PER_PAGE] != -1) {
+                int bank = (lba + i) / SECTORS_PER_PAGE % N_BANKS;
+                int addr = pmt[(lba + i) / SECTORS_PER_PAGE] - bank * N_PPNS_PB;
+                int block = addr / PAGES_PER_BLK;
+                int page = addr % PAGES_PER_BLK;
+                int tmp_lpn;
 
-    if (pmt[lpn] == -1) {
-        memset(read_buffer, 0xff, nsect * SECTOR_SIZE);
-    }
-
-    else {
-        int addr = pmt[lpn];
-        int bank = lpn % N_BANKS;
-        int block;
-        int page;
-        u32* buf = (u32*)malloc(SECTOR_SIZE * SECTORS_PER_PAGE);
-        u32 spare;
-
-        addr = addr - bank * N_PPNS_PB;
-
-        block = addr / PAGES_PER_BLK;
-        page = addr % PAGES_PER_BLK;
-
-        for (int i = 0; i < nsect; i++) {
-            if (i == 0 || (lba + i) % SECTORS_PER_PAGE == 0) {
-                // printf("bank: %d, block: %d, page: %d, lpn: %d, pmt[lpn]: %d\n", bank, block, page, lpn, pmt[lpn]);
-                nand_read(bank, block, page, buf, &spare);
+                // printf("bank: %d, block: %d, page: %d, pmt[%d]: %d\n", bank, block, page, (lba + i) / SECTORS_PER_PAGE, pmt[(lba + i) / SECTORS_PER_PAGE]);
+                nand_read(bank, block, page, buf, &tmp_lpn);
                 // for (int j = 0; j < 8; j++) {
-                //     // printf("%x ", buf[j]);
+                //     printf("%x ", buf[j]);
                 // }
                 // printf("\n");
                 stats.nand_read++;
 
-                lpn++;
-                bank = lpn % N_BANKS;
-                addr = pmt[lpn] - bank * N_PPNS_PB;
-                block = addr / PAGES_PER_BLK;
-                page = addr % PAGES_PER_BLK;
+                for (int j = 0;; j++) {
+                    read_buffer[i + j] = buf[(lba + i + j) % SECTORS_PER_PAGE];
+                    
+                    if ((lba + i + j) % SECTORS_PER_PAGE == SECTORS_PER_PAGE - 1 || i + j == nsect - 1)
+                        break;
+                }
+                
             }
-
-            read_buffer[i] = buf[(lba + i) % SECTORS_PER_PAGE];
+            
+            else {
+                for (int j = 0;; j++) {
+                    read_buffer[i + j] = 0xffffffff;
+                    
+                    if ((lba + i + j) % SECTORS_PER_PAGE == SECTORS_PER_PAGE - 1 || i + j == nsect - 1)
+                        break;
+                }
+            }
         }
-
-        free(buf);
     }
+
+    free(buf);
+
+    // if (pmt[lpn] == -1) {
+    //     memset(read_buffer, 0xffffffff, nsect * SECTOR_SIZE);
+    // }
+
+    // else {
+    //     int addr = pmt[lpn];
+    //     int bank = lpn % N_BANKS;
+    //     int block;
+    //     int page;
+    //     u32* buf = (u32*)malloc(SECTOR_SIZE * SECTORS_PER_PAGE);
+    //     u32 spare;
+
+    //     addr = addr - bank * N_PPNS_PB;
+
+    //     block = addr / PAGES_PER_BLK;
+    //     page = addr % PAGES_PER_BLK;
+
+    //     for (int i = 0; i < nsect; i++) {
+    //         if (i == 0 || (lba + i) % SECTORS_PER_PAGE == 0) {
+    //             // printf("bank: %d, block: %d, page: %d, lpn: %d, pmt[lpn]: %d\n", bank, block, page, lpn, pmt[lpn]);
+    //             nand_read(bank, block, page, buf, &spare);
+    //             // for (int j = 0; j < 8; j++) {
+    //             //     // printf("%x ", buf[j]);
+    //             // }
+    //             // printf("\n");
+    //             stats.nand_read++;
+
+    //             lpn++;
+    //             bank = lpn % N_BANKS;
+    //             addr = pmt[lpn] - bank * N_PPNS_PB;
+    //             block = addr / PAGES_PER_BLK;
+    //             page = addr % PAGES_PER_BLK;
+    //         }
+
+    //         read_buffer[i] = buf[(lba + i) % SECTORS_PER_PAGE];
+    //     }
+
+    //     free(buf);
+    // }
 
     return;
 }
@@ -284,7 +324,9 @@ that you issue in this function
 
         // no old data
         else {
-            memset(buf, 0xff, (lba % SECTORS_PER_PAGE) * SECTOR_SIZE);
+            for (int i = 0; i < SECTORS_PER_PAGE; i++) {
+                buf[i] = 0xffffffff;
+            }
         }
     }
 
@@ -310,7 +352,7 @@ that you issue in this function
             }
 
             pmt[write_lpn] = addr;
-            // for (int j = 0; j < 8; j++) {
+        // for (int j = 0; j < 8; j++) {
             //     // printf("%x ", buf[j]);
             // }
             // printf("\n");
@@ -335,19 +377,28 @@ that you issue in this function
             stats.nand_read++;
 
             for (int i = lba + nsect;; i++) {
-                buf[i % SECTORS_PER_PAGE] = tmp_buf[(lba + i) % SECTORS_PER_PAGE];
+                // for (int j = 0; j < 8; j++) {
+                //     printf("%x ", buf[j]);
+                // }
+                // printf("\n");
+                // printf("i %% SECTORS_PER_PAGE: %d, (lba + i) %% SECTORS_PER_PAGE: %d\n", i % SECTORS_PER_PAGE, (lba + i) % SECTORS_PER_PAGE);
+                buf[i % SECTORS_PER_PAGE] = tmp_buf[i % SECTORS_PER_PAGE];
 
                 if (i % SECTORS_PER_PAGE == SECTORS_PER_PAGE - 1)
                     break;
             }
+            // for (int j = 0; j < 8; j++) {
+            //         printf("%x ", buf[j]);
+            //     }
+            //     printf("\n");
         }
 
         // no old data
         else {
             for (int i = lba + nsect;; i++) {
-                buf[i % SECTORS_PER_PAGE] = 0xff;
+                buf[i % SECTORS_PER_PAGE] = 0xffffffff;
 
-                if (i % SECTORS_PER_PAGE != SECTORS_PER_PAGE - 1)
+                if (i % SECTORS_PER_PAGE == SECTORS_PER_PAGE - 1)
                     break;
             }
         }
@@ -366,14 +417,21 @@ that you issue in this function
         }
 
         pmt[write_lpn] = addr;
-        // for (int j = 0; j < 8; j++) {
-        //     // printf("%x ", buf[j]);
-        // }
-        // printf("\n");
         // printf("bank: %d, block: %d, page: %d, pmt[lpn]: %d\n", bank, block, page, pmt[lpn]);
+        
         nand_write(bank, block, page, buf, &write_lpn);
         stats.nand_write++;
     }
 
+    // for (int i = 0; i < BLKS_PER_BANK * PAGES_PER_BLK; i++) {
+    //     for (int j = 0; j < N_BANKS; j++) {
+    //         printf("used[%d][%d]: %d ", j, i, used[j][i]);
+    //     }
+    //     printf("\n");
+    // }
+
+    // for (int i = 0; i < N_LPNS; i++) {
+    //     printf("pmt[%d]: %d\n", i, pmt[i]);
+    // }
     return;
 }
