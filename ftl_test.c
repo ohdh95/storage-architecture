@@ -15,26 +15,26 @@
 #include <string.h>
 #include <assert.h>
 
-#include "ftl1.h"
-// #if defined(VERSION_V0)
-//     #include "ftl.h"
-// #elif defined(VERSION_V1)
-//     #include "ftl1.h"
-// #elif defined(VERSION_V2)
-//     #include "ftl2.h"
-// #elif defined(VERSION_V3)
-//     #include "ftl3.h"
-// #elif defined(VERSION_V4)
-//     #include "ftl4.h"
-// #elif defined(VERSION_V5)
-//     #include "ftl5.h"
-// #elif defined(VERSION_V6)
-//     #include "ftl6.h"
-// #elif defined(VERSION_V7)
-//     #include "ftl7.h"
-// #elif defined(VERSION_V8)
-//     #include "ftl8.h"
-// #endif
+// #include "ftl1.h"
+#if defined(VERSION_V0)
+    #include "ftl.h"
+#elif defined(VERSION_V1)
+    #include "ftl1.h"
+#elif defined(VERSION_V2)
+    #include "ftl2.h"
+#elif defined(VERSION_V3)
+    #include "ftl3.h"
+#elif defined(VERSION_V4)
+    #include "ftl4.h"
+#elif defined(VERSION_V5)
+    #include "ftl5.h"
+#elif defined(VERSION_V6)
+    #include "ftl6.h"
+#elif defined(VERSION_V7)
+    #include "ftl7.h"
+#elif defined(VERSION_V8)
+    #include "ftl8.h"
+#endif
 // struct ftl_stats stats;
 
 static void show_info(void)
@@ -49,7 +49,7 @@ static void show_info(void)
 	printf("OP Blocks: %d\n", N_OP_BLOCKS);
 	printf("PPNs: %d\n", N_PPNS);
 	printf("LPNs: %d\n", N_LPNS);
-	printf("\n");
+	// printf("\n");
 }
 
 static u32 get_data()
@@ -100,6 +100,7 @@ int main(int argc, char **argv)
 		u32 *buf;
 		if (scanf(" %c", &op) < 1)
 			break;
+		printf("\n");
 		switch (op) {
 		case 'R':
 			scanf("%d %d", &lba, &nsect);
@@ -108,7 +109,7 @@ int main(int argc, char **argv)
 			printf("Read(%u,%u): [ ", lba, nsect);
 			for (i = 0; i < nsect; i++)
 				printf("%2x ", buf[i]);
-			printf("]\n");
+			printf("]");
 			free(buf);
 			break;
 		case 'W':
@@ -120,20 +121,20 @@ int main(int argc, char **argv)
 			printf("Write(%u,%u): [", lba, nsect);
 			for (i = 0; i < nsect; i++)
 				printf("%2x ", buf[i]);
-			printf("]\n");
+			printf("]");
 			free(buf);
 			break;
 		case 'T':
 			scanf("%d %d", &lpn, &npage);
 			ftl_trim(lpn, npage);
-			printf("Trim(%u,%u)\n", lpn, npage);
+			printf("Trim(%u,%u)", lpn, npage);
 			break;
 		case 'F':
 			ftl_flush();
-			printf("Flush()\n");
+			printf("Flush()");
 			break;
 		default:
-			fprintf(stderr, "Wrong op type\n");
+			fprintf(stderr, "Wrong op type");
 			return EXIT_FAILURE;
 		}
 	}

@@ -20,26 +20,26 @@
  * http://nyx.skku.ac.kr
  */
 
-#include "ftl1.h"
-// #if defined(VERSION_V0)
-//     #include "ftl.h"
-// #elif defined(VERSION_V1)
-//     #include "ftl1.h"
-// #elif defined(VERSION_V2)
-//     #include "ftl2.h"
-// #elif defined(VERSION_V3)
-//     #include "ftl3.h"
-// #elif defined(VERSION_V4)
-//     #include "ftl4.h"
-// #elif defined(VERSION_V5)
-//     #include "ftl5.h"
-// #elif defined(VERSION_V6)
-//     #include "ftl6.h"
-// #elif defined(VERSION_V7)
-//     #include "ftl7.h"
-// #elif defined(VERSION_V8)
-//     #include "ftl8.h"
-// #endif
+// #include "ftl1.h"
+#if defined(VERSION_V0)
+    #include "ftl.h"
+#elif defined(VERSION_V1)
+    #include "ftl1.h"
+#elif defined(VERSION_V2)
+    #include "ftl2.h"
+#elif defined(VERSION_V3)
+    #include "ftl3.h"
+#elif defined(VERSION_V4)
+    #include "ftl4.h"
+#elif defined(VERSION_V5)
+    #include "ftl5.h"
+#elif defined(VERSION_V6)
+    #include "ftl6.h"
+#elif defined(VERSION_V7)
+    #include "ftl7.h"
+#elif defined(VERSION_V8)
+    #include "ftl8.h"
+#endif
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -53,6 +53,9 @@ int bufmap[N_BUFFERS];
 int is_in_buffer(u32 lpn) {
 	for (int i = 0; i < N_BUFFERS; i++) {
 		if (bufmap[i] == lpn) {
+			if (pmt[lpn] != -1) {
+				printf("??\n");
+			}
 			return i;
 		}
 	}
@@ -243,7 +246,6 @@ that you issue in this function
 					for (int j = 0; j < SECTORS_PER_PAGE; j++) {
 						buf[j] = buffer[buf_idx * SECTORS_PER_PAGE + j];
 					}
-					// memcpy(buf, buffer + (buf_idx * SECTOR_SIZE * SECTORS_PER_PAGE), SECTOR_SIZE * SECTORS_PER_PAGE);
 				}
 
 				else {
@@ -275,7 +277,6 @@ that you issue in this function
 						if ((lba + i + j) % SECTORS_PER_PAGE == SECTORS_PER_PAGE - 1 || i + j == nsect - 1)
 							break;
 					}
-					// memcpy(buf, buffer + (buf_idx * SECTOR_SIZE * SECTORS_PER_PAGE), SECTOR_SIZE * SECTORS_PER_PAGE);
 				}
 
 				else {
@@ -342,7 +343,7 @@ that you issue in this function
 				int buf_idx = is_in_buffer(lpn);
 
 				if (buf_idx != -1) {
-					// memcpy(buf, buffer + (buf_idx * SECTOR_SIZE * SECTORS_PER_PAGE), SECTOR_SIZE * SECTORS_PER_PAGE);
+					printf("jere\n");
 					for (int j = 0; j < SECTORS_PER_PAGE; j++) {
 						buf[j] = buffer[buf_idx * SECTORS_PER_PAGE + j];
 					}
@@ -363,7 +364,6 @@ that you issue in this function
 				int buf_idx = is_in_buffer(lpn);
 				
 				if (buf_idx != -1) {
-					// memcpy(buf, buffer + (buf_idx * SECTOR_SIZE * SECTORS_PER_PAGE), SECTOR_SIZE * SECTORS_PER_PAGE);
 					for (int j = 0; j < SECTORS_PER_PAGE; j++) {
 						buf[j] = buffer[buf_idx * SECTORS_PER_PAGE + j];
 					}
@@ -386,37 +386,21 @@ that you issue in this function
 				int buf_idx = is_in_buffer(write_lpn);
 
 				if (buf_idx == -1) {
-					// memcpy(buffer + (buf_idx * SECTOR_SIZE * SECTORS_PER_PAGE), buf, SECTOR_SIZE * SECTORS_PER_PAGE);
-					// for (int j = 0; j < SECTORS_PER_PAGE; j++) {
-					// 	buffer[buf_idx * SECTORS_PER_PAGE + j] = buf[j];
-					// }
 					buf_idx = find_empty_buffer();
 					bufmap[buf_idx] = write_lpn;
 				}
 
-				// memcpy(buffer + (buf_idx * SECTOR_SIZE * SECTORS_PER_PAGE), buf, SECTOR_SIZE * SECTORS_PER_PAGE);
 				for (int j = 0; j < SECTORS_PER_PAGE; j++) {
 					buffer[buf_idx * SECTORS_PER_PAGE + j] = buf[j];
 				}
 
-				
-				// find_next_page(&bank, &block, &page, write_lpn);
-				// addr = bank * N_PPNS_PB + block * PAGES_PER_BLK + page;
+				if (pmt[write_lpn] != -1) {
+					int tmp_bank = write_lpn % N_BANKS;
+					int tmp_addr = pmt[write_lpn] - tmp_bank * N_PPNS_PB;
 
-				// old page invalid
-				// if (pmt[write_lpn] != -1) {
-				// 	int old_bank = write_lpn % N_BANKS;
-				// 	int old_addr = pmt[write_lpn] - old_bank * N_PPNS_PB;
-				// 	int old_block = old_addr / PAGES_PER_BLK;
-				// 	int old_page = old_addr % PAGES_PER_BLK;
-
-				// 	used[old_bank][old_block * PAGES_PER_BLK + old_page] = -1;
-				// }
-
-				// pmt[write_lpn] = addr;
-			
-				// nand_write(bank, block, page, buf, &write_lpn);
-				// // stats.nand_write++;
+					used[tmp_bank][tmp_addr] = -1;
+					pmt[write_lpn] = -1;
+				}
 			}
 		}
 
@@ -429,7 +413,6 @@ that you issue in this function
 				u32* tmp_buf = (u32*)malloc(SECTOR_SIZE * SECTORS_PER_PAGE);
 
 				if (buf_idx != -1) {
-					// memcpy(tmp_buf, buffer + (buf_idx * SECTOR_SIZE * SECTORS_PER_PAGE), SECTOR_SIZE * SECTORS_PER_PAGE);
 					for (int j = 0; j < SECTORS_PER_PAGE; j++) {
 						tmp_buf[j] = buffer[buf_idx * SECTORS_PER_PAGE + j];
 					}
@@ -444,13 +427,13 @@ that you issue in this function
 
 					nand_read(old_bank, old_block, old_page, tmp_buf, &write_lpn);
 					// stats.nand_read++;
+				}
 
-					for (int i = lba + nsect;; i++) {
-						buf[i % SECTORS_PER_PAGE] = tmp_buf[i % SECTORS_PER_PAGE];
+				for (int i = lba + nsect;; i++) {
+					buf[i % SECTORS_PER_PAGE] = tmp_buf[i % SECTORS_PER_PAGE];
 
-						if (i % SECTORS_PER_PAGE == SECTORS_PER_PAGE - 1)
-							break;
-					}
+					if (i % SECTORS_PER_PAGE == SECTORS_PER_PAGE - 1)
+						break;
 				}
 
 				free(tmp_buf);
@@ -461,7 +444,6 @@ that you issue in this function
 				int buf_idx = is_in_buffer((lba + nsect - 1) / SECTORS_PER_PAGE);
 
 				if (buf_idx != -1) {
-					// memcpy(buf, buffer + (buf_idx * SECTOR_SIZE * SECTORS_PER_PAGE), SECTOR_SIZE * SECTORS_PER_PAGE);
 					for (int i = lba + nsect;; i++) {
 						buf[i % SECTORS_PER_PAGE] = buffer[buf_idx * SECTORS_PER_PAGE + (i % SECTORS_PER_PAGE)];
 						
@@ -483,40 +465,24 @@ that you issue in this function
 			int buf_idx = is_in_buffer(write_lpn);
 
 			if (buf_idx == -1) {
-					// memcpy(buffer + (buf_idx * SECTOR_SIZE * SECTORS_PER_PAGE), buf, SECTOR_SIZE * SECTORS_PER_PAGE);
-					// for (int j = 0; j < SECTORS_PER_PAGE; j++) {
-					// 	buffer[buf_idx * SECTORS_PER_PAGE + j] = buf[j];
-					// }
-					buf_idx = find_empty_buffer();
-					bufmap[buf_idx] = write_lpn;
-				}
+				buf_idx = find_empty_buffer();
+				bufmap[buf_idx] = write_lpn;
+			}
 
-			// memcpy(buffer + (buf_idx * SECTOR_SIZE * SECTORS_PER_PAGE), buf, SECTOR_SIZE * SECTORS_PER_PAGE);
 			for (int j = 0; j < SECTORS_PER_PAGE; j++) {
 				buffer[buf_idx * SECTORS_PER_PAGE + j] = buf[j];
 			}
-			// find_next_page(&bank, &block, &page, write_lpn);
-			// addr = bank * N_PPNS_PB + block * PAGES_PER_BLK + page;
 
-			// // old page invalid 시키기
-			// if (pmt[write_lpn] != -1) {
-			// 	int old_bank = write_lpn % N_BANKS;
-			// 	int old_addr = pmt[write_lpn] - old_bank * N_PPNS_PB;
-			// 	int old_block = old_addr / PAGES_PER_BLK;
-			// 	int old_page = old_addr % PAGES_PER_BLK;
+			if (pmt[write_lpn] != -1) {
+				int tmp_bank = write_lpn % N_BANKS;
+				int tmp_addr = pmt[write_lpn] - tmp_bank * N_PPNS_PB;
 
-			// 	used[old_bank][old_block * PAGES_PER_BLK + old_page] = -1;
-			// }
-
-			// pmt[write_lpn] = addr;
-			
-			// nand_write(bank, block, page, buf, &write_lpn);
-			// // stats.nand_write++;
+				used[tmp_bank][tmp_addr] = -1;
+				pmt[write_lpn] = -1;
+			}
 		}
 
 		free(buf);
-
-
 	}
 
 	else {
@@ -534,7 +500,6 @@ that you issue in this function
 				int buf_idx = is_in_buffer(lpn);
 
 				if (buf_idx != -1) {
-					// memcpy(buf, buffer + (buf_idx * SECTOR_SIZE * SECTORS_PER_PAGE), SECTOR_SIZE * SECTORS_PER_PAGE);
 					for (int j = 0; j < SECTORS_PER_PAGE; j++) {
 						buf[j] = buffer[buf_idx * SECTORS_PER_PAGE + j];
 					}
@@ -552,8 +517,18 @@ that you issue in this function
 
 			// no old data
 			else {
-				for (int i = 0; i < SECTORS_PER_PAGE; i++) {
-					buf[i] = 0xffffffff;
+				int buf_idx = is_in_buffer(lba / SECTORS_PER_PAGE);
+
+				if (buf_idx != -1) {
+					for (int j = 0; j < SECTORS_PER_PAGE; j++) {
+						buf[j] = buffer[buf_idx * SECTORS_PER_PAGE + j];
+					}
+				}
+				
+				else {
+					for (int i = 0; i < SECTORS_PER_PAGE; i++) {
+						buf[i] = 0xffffffff;
+					}
 				}
 			}
 		}
@@ -578,9 +553,17 @@ that you issue in this function
 					used[old_bank][old_block * PAGES_PER_BLK + old_page] = -1;
 				}
 
-				pmt[write_lpn] = addr;
+
 			
 				nand_write(bank, block, page, buf, &write_lpn);
+
+				int tmp_buf_idx = is_in_buffer(write_lpn);
+
+				if (tmp_buf_idx != -1) {
+					bufmap[tmp_buf_idx] = -1;
+				}
+
+				pmt[write_lpn] = addr;
 				// stats.nand_write++;
 			}
 		}
@@ -594,7 +577,6 @@ that you issue in this function
 				u32* tmp_buf = (u32*)malloc(SECTOR_SIZE * SECTORS_PER_PAGE);
 
 				if (buf_idx != -1) {
-					// memcpy(tmp_buf, buffer + (buf_idx * SECTOR_SIZE * SECTORS_PER_PAGE), SECTOR_SIZE * SECTORS_PER_PAGE);
 					for (int j = 0; j < SECTORS_PER_PAGE; j++) {
 						tmp_buf[j] = buffer[buf_idx * SECTORS_PER_PAGE + j];
 					}
@@ -609,6 +591,28 @@ that you issue in this function
 
 					nand_read(old_bank, old_block, old_page, tmp_buf, &write_lpn);
 					// stats.nand_read++;
+				}
+
+				for (int i = lba + nsect;; i++) {
+					buf[i % SECTORS_PER_PAGE] = tmp_buf[i % SECTORS_PER_PAGE];
+
+					if (i % SECTORS_PER_PAGE == SECTORS_PER_PAGE - 1)
+						break;
+				}
+
+
+				free(tmp_buf);
+			}
+
+			// no old data
+			else {
+				int buf_idx = is_in_buffer(write_lpn);
+				u32* tmp_buf = (u32*)malloc(SECTOR_SIZE * SECTORS_PER_PAGE);
+
+				if (buf_idx != -1) {
+					for (int j = 0; j < SECTORS_PER_PAGE; j++) {
+						tmp_buf[j] = buffer[buf_idx * SECTORS_PER_PAGE + j];
+					}
 
 					for (int i = lba + nsect;; i++) {
 						buf[i % SECTORS_PER_PAGE] = tmp_buf[i % SECTORS_PER_PAGE];
@@ -616,18 +620,17 @@ that you issue in this function
 						if (i % SECTORS_PER_PAGE == SECTORS_PER_PAGE - 1)
 							break;
 					}
+
+					free(tmp_buf);
 				}
 
-				free(tmp_buf);
-			}
+				else {
+					for (int i = lba + nsect;; i++) {
+						buf[i % SECTORS_PER_PAGE] = 0xffffffff;
 
-			// no old data
-			else {
-				for (int i = lba + nsect;; i++) {
-					buf[i % SECTORS_PER_PAGE] = 0xffffffff;
-
-					if (i % SECTORS_PER_PAGE == SECTORS_PER_PAGE - 1)
-						break;
+						if (i % SECTORS_PER_PAGE == SECTORS_PER_PAGE - 1)
+							break;
+					}
 				}
 			}
 
@@ -644,9 +647,17 @@ that you issue in this function
 				used[old_bank][old_block * PAGES_PER_BLK + old_page] = -1;
 			}
 
-			pmt[write_lpn] = addr;
+
 			
 			nand_write(bank, block, page, buf, &write_lpn);
+
+			int tmp_buf_idx = is_in_buffer(write_lpn);
+
+			if (tmp_buf_idx != -1) {
+				bufmap[tmp_buf_idx] = -1;
+			}
+
+			pmt[write_lpn] = addr;
 			// stats.nand_write++;
 		}
 
@@ -657,6 +668,7 @@ that you issue in this function
 }
 void ftl_flush()
 {
+	// printf("Flush!!!!\n");
 	for (int i = 0; i < N_BUFFERS; i++) {
 		if (bufmap[i] != -1) {
 			int write_lpn = bufmap[i];
@@ -666,7 +678,6 @@ void ftl_flush()
 			int addr;
 			u32* buf = (u32*)malloc(SECTOR_SIZE * SECTORS_PER_PAGE);
 
-			// memcpy(buf, buffer + (i * SECTOR_SIZE * SECTORS_PER_PAGE), SECTOR_SIZE * SECTORS_PER_PAGE);
 			for (int j = 0; j < SECTORS_PER_PAGE; j++) {
 				buf[j] = buffer[i * SECTORS_PER_PAGE + j];
 			}
@@ -701,11 +712,27 @@ void ftl_trim(u32 lpn, u32 npage)
 {
 	for (int i = 0; i < npage; i++) {
 		int bank = (lpn + i) % N_BANKS;
-		int addr = pmt[lpn + i] - bank * N_PPNS_PB;
-		int block = addr / PAGES_PER_BLK;
-		int page = addr % PAGES_PER_BLK;
 
-		used[bank][block * PAGES_PER_BLK + page] = -1;
-		pmt[lpn + i] = -1;
+		if (pmt[lpn + i] != -1) {
+			int addr = pmt[lpn + i] - bank * N_PPNS_PB;
+			int block = addr / PAGES_PER_BLK;
+			int page = addr % PAGES_PER_BLK;
+
+			used[bank][block * PAGES_PER_BLK + page] = -1;
+			pmt[lpn + i] = -1;
+
+			int buf_idx = is_in_buffer(lpn);
+
+			if (buf_idx != -1) {
+				printf("here\n");
+				bufmap[buf_idx] = -1;
+			}
+		}
+
+		int buf_idx = is_in_buffer(lpn + i);
+
+		if (buf_idx != -1) {
+			bufmap[buf_idx] = -1;
+		}
 	}
 }
