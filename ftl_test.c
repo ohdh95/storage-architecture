@@ -15,8 +15,26 @@
 #include <string.h>
 #include <assert.h>
 
-#include "ftl.h"
-
+#include "ftl1.h"
+// #if defined(VERSION_V0)
+//     #include "ftl.h"
+// #elif defined(VERSION_V1)
+//     #include "ftl1.h"
+// #elif defined(VERSION_V2)
+//     #include "ftl2.h"
+// #elif defined(VERSION_V3)
+//     #include "ftl3.h"
+// #elif defined(VERSION_V4)
+//     #include "ftl4.h"
+// #elif defined(VERSION_V5)
+//     #include "ftl5.h"
+// #elif defined(VERSION_V6)
+//     #include "ftl6.h"
+// #elif defined(VERSION_V7)
+//     #include "ftl7.h"
+// #elif defined(VERSION_V8)
+//     #include "ftl8.h"
+// #endif
 // struct ftl_stats stats;
 
 static void show_info(void)
