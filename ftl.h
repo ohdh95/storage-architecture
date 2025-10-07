@@ -51,7 +51,7 @@ enum gc_policy {
 	gc_cat
 };
 
-#define GC_POLICY		gc_creedy
+#define GC_POLICY		gc_cb
 
 /* struct ftl_stats {
 	int gc_cnt;
