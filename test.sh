@@ -1,18 +1,26 @@
-make H=1 -B
+GC_POLICY=$1
+
+# 기본값 설정 (입력값이 없을 경우)
+if [ -z "$GC_POLICY" ]; then
+    echo "Usage: ./test.sh [GREEDY|CB|CAT]"
+    exit 1
+fi
+
+make H=1 -B P=$GC_POLICY
 ./ftl_test ../lab3_tc/input1.txt 1.txt
-make H=2 -B
+make H=2 -B P=$GC_POLICY
 ./ftl_test ../lab3_tc/input2.txt 2.txt
-make H=3 -B
+make H=3 -B P=$GC_POLICY
 ./ftl_test ../lab3_tc/input3.txt 3.txt
-make H=4 -B
+make H=4 -B P=$GC_POLICY
 ./ftl_test ../lab3_tc/input4.txt 4.txt
-make H=5 -B
+make H=5 -B P=$GC_POLICY
 ./ftl_test ../lab3_tc/input5.txt 5.txt
-make H=6 -B
+make H=6 -B P=$GC_POLICY
 ./ftl_test ../lab3_tc/input6.txt 6.txt
-make H=7 -B
+make H=7 -B P=$GC_POLICY
 ./ftl_test ../lab3_tc/input7.txt 7.txt
-make H=8 -B
+make H=8 -B P=$GC_POLICY
 ./ftl_test ../lab3_tc/input8.txt 8.txt
 
 diff 1.txt ../lab3_tc/output1.txt > result1.txt

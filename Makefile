@@ -30,6 +30,23 @@ H ?= 0
 # H의 값을 VERSION_V* 형태로 변환하여 CFLAGS에 추가합니다.
 CFLAGS += -DVERSION_V$(H)
 
+# H가 비어있으면 0으로 기본값을 설정합니다.
+P ?= 0
+
+# P 값에 따라 GC_POLICY 설정
+ifeq ($(P), 1)
+    GC_POLICY = GREEDY
+else ifeq ($(P), 2)
+    GC_POLICY = CB
+else ifeq ($(P), 3)
+    GC_POLICY = CAT
+else
+    GC_POLICY = GREEDY # 기본값
+endif
+
+# H의 값을 VERSION_V* 형태로 변환하여 CFLAGS에 추가합니다.
+CFLAGS += -D$(GC_POLICY)
+
 all: $(OBJS)
 	$(CC) $(CFLAGS) -o $(TARGET) $(OBJS)
 

@@ -49,13 +49,132 @@ int used[N_BANKS][BLKS_PER_BANK * PAGES_PER_BLK];
 int freeblock[N_BANKS];
 u32 buffer[SECTORS_PER_PAGE * N_BUFFERS];
 int bufmap[N_BUFFERS];
+int age[N_BANKS][BLKS_PER_BANK];
+int count[N_BANKS][BLKS_PER_BANK];
+
+int greedy_policy(u32 bank) {
+	int victim = -1;
+    int victim_cnt = -1;
+
+    // select victim block
+    for (int i = 0; i < BLKS_PER_BANK; i++) {
+        int cnt = 0;
+        
+        for (int j = 0; j < PAGES_PER_BLK; j++) {
+            if (used[bank][i * PAGES_PER_BLK + j] == -1) {
+                cnt++;
+            }
+        }
+
+        if (cnt > victim_cnt) {
+            victim_cnt = cnt;
+            victim = i;
+        }
+    }
+
+	return victim;
+}
+
+int cost_benefit_policy(u32 bank) {
+	float cost;
+	int victim = -1;
+
+	for (int i = 0; i < BLKS_PER_BANK; i++) {
+		int cnt = 0;
+		int unused = 0;
+
+		for (int j = 0; j < PAGES_PER_BLK; j++) {
+			if (used[bank][i * PAGES_PER_BLK + j] == 1) {
+				cnt++;
+			}
+			if (used[bank][i * PAGES_PER_BLK + j] == 0) {
+				unused = 1;
+				break;
+			}
+		}
+
+		if (unused == 1) {
+			continue;
+		}
+
+		float u = (float)cnt / PAGES_PER_BLK;
+		if (u == 0) {
+			u = 0.0001;
+		}
+		if (u == 1) {
+			continue;
+		}
+		float tmp_cost = (1 - u) / (2 * u) * age[bank][i];
+
+		if (victim == -1) {
+			cost = tmp_cost;
+			victim = i;
+		}
+
+		else if (cost < tmp_cost) {
+			cost = tmp_cost;
+			victim = i;
+		}
+	}
+
+	return victim;
+}
+
+int cost_age_times_policy(u32 bank) {
+	float cost;
+	int victim = -1;
+
+	for (int i = 0; i < BLKS_PER_BANK; i++) {
+		int cnt = 0;
+		int unused = 0;
+
+		for (int j = 0; j < PAGES_PER_BLK; j++) {
+			if (used[bank][i * PAGES_PER_BLK + j] == 1) {
+				cnt++;
+			}
+			if (used[bank][i * PAGES_PER_BLK + j] == 0) {
+				unused = 1;
+				break;
+			}
+		}
+
+		if (unused == 1) {
+			continue;
+		}
+
+		float u = (float)cnt / PAGES_PER_BLK;
+
+		if (u == 1) {
+			continue;
+		}
+
+		int age_val = age[bank][i];
+
+		if (age_val == 0) {
+			age_val = 1;
+		}
+
+		float tmp_cost = u / ((1 - u) * age_val) * count[bank][i];
+
+		if (victim == -1) {
+			cost = tmp_cost;
+			victim = i;
+		}
+
+		else if (cost > tmp_cost) {
+			cost = tmp_cost;
+			victim = i;
+		}
+	}
+
+	count[bank][victim]++;
+
+	return victim;
+}
 
 int is_in_buffer(u32 lpn) {
 	for (int i = 0; i < N_BUFFERS; i++) {
 		if (bufmap[i] == lpn) {
-			if (pmt[lpn] != -1) {
-				printf("??\n");
-			}
 			return i;
 		}
 	}
@@ -87,24 +206,37 @@ that you issue in this function
 for every nand_read call (every valid page copy)
 that you issue in this function
 ***************************************/
-    int victim = -1;
-    int victim_cnt = -1;
+    int victim;
 
-    // select victim block
-    for (int i = 0; i < BLKS_PER_BANK; i++) {
-        int cnt = 0;
+	if (GC_POLICY == gc_greedy) {
+		victim = greedy_policy(bank);
+	}
+
+	else if (GC_POLICY == gc_cb) {
+		victim = cost_benefit_policy(bank);
+	}
+
+	else if (GC_POLICY == gc_cat) {
+		victim = cost_age_times_policy(bank);
+	}
+
+    // int victim_cnt = -1;
+
+    // // select victim block
+    // for (int i = 0; i < BLKS_PER_BANK; i++) {
+    //     int cnt = 0;
         
-        for (int j = 0; j < PAGES_PER_BLK; j++) {
-            if (used[bank][i * PAGES_PER_BLK + j] == -1) {
-                cnt++;
-            }
-        }
+    //     for (int j = 0; j < PAGES_PER_BLK; j++) {
+    //         if (used[bank][i * PAGES_PER_BLK + j] == -1) {
+    //             cnt++;
+    //         }
+    //     }
 
-        if (cnt > victim_cnt) {
-            victim_cnt = cnt;
-            victim = i;
-        }
-    }
+    //     if (cnt > victim_cnt) {
+    //         victim_cnt = cnt;
+    //         victim = i;
+    //     }
+    // }
 
     for (int i = 0; i < PAGES_PER_BLK; i++) {
         if (used[bank][victim * PAGES_PER_BLK + i] == 1) {
@@ -129,6 +261,18 @@ that you issue in this function
 
             
             nand_write(bank, copy_block, copy_page, buf, &spare);
+
+			for (int i = 0; i < N_BANKS; i++) {
+				for (int j = 0; j < BLKS_PER_BANK; j++) {
+					if (i == bank && j == copy_block) {
+						age[i][j] = 0;
+					}
+
+					else {
+						age[i][j]++;
+					}
+				}
+			}
             // stats.gc_write++;
 
             pmt[spare] = bank * N_PPNS_PB + copy_block * PAGES_PER_BLK + copy_page;
@@ -307,17 +451,26 @@ Add
 for every nand_write call 
 that you issue in this function
 ***************************************/
-    int npages = 0;
-
-	for (int i = 0; i < nsect; i++) {
-		if (i == 0 || (lba + i) % SECTORS_PER_PAGE == 0) {
-			npages++;
-		}
-	}
+	int start_lpn = lba / SECTORS_PER_PAGE;
+	int end_lpn = (lba + nsect - 1) / SECTORS_PER_PAGE;
+	int npages = end_lpn - start_lpn + 1;
+	// for (int i = 0; i < nsect; i++) {
+	// 	if (i == 0 || (lba + i) % SECTORS_PER_PAGE == 0) {
+	// 		npages++;
+	// 	}
+	// }
 
 
 	if (npages <= N_BUFFERS) {
 		int can_use = 0;
+		int overwrite = 0;
+
+
+		for (int i = 0; i < N_BUFFERS; i++) {
+			if (bufmap[i] >= start_lpn && bufmap[i] <= end_lpn) {
+				overwrite++;
+			}
+		}
 
 		for (int i = 0; i < N_BUFFERS; i++) {
 			if (bufmap[i] == -1) {
@@ -325,7 +478,7 @@ that you issue in this function
 			}
 		}
 
-		if (can_use < npages) {
+		if (npages - overwrite > can_use) {
 			ftl_flush();
 		}
 
@@ -343,7 +496,6 @@ that you issue in this function
 				int buf_idx = is_in_buffer(lpn);
 
 				if (buf_idx != -1) {
-					printf("jere\n");
 					for (int j = 0; j < SECTORS_PER_PAGE; j++) {
 						buf[j] = buffer[buf_idx * SECTORS_PER_PAGE + j];
 					}
@@ -557,6 +709,18 @@ that you issue in this function
 			
 				nand_write(bank, block, page, buf, &write_lpn);
 
+				for (int i = 0; i < N_BANKS; i++) {
+					for (int j = 0; j < BLKS_PER_BANK; j++) {
+						if (i == bank && j == block) {
+							age[i][j] = 0;
+						}
+
+						else {
+							age[i][j]++;
+						}
+					}
+				}
+
 				int tmp_buf_idx = is_in_buffer(write_lpn);
 
 				if (tmp_buf_idx != -1) {
@@ -651,6 +815,18 @@ that you issue in this function
 			
 			nand_write(bank, block, page, buf, &write_lpn);
 
+			for (int i = 0; i < N_BANKS; i++) {
+				for (int j = 0; j < BLKS_PER_BANK; j++) {
+					if (i == bank && j == block) {
+						age[i][j] = 0;
+					}
+
+					else {
+						age[i][j]++;
+					}
+				}
+			}
+
 			int tmp_buf_idx = is_in_buffer(write_lpn);
 
 			if (tmp_buf_idx != -1) {
@@ -668,7 +844,6 @@ that you issue in this function
 }
 void ftl_flush()
 {
-	// printf("Flush!!!!\n");
 	for (int i = 0; i < N_BUFFERS; i++) {
 		if (bufmap[i] != -1) {
 			int write_lpn = bufmap[i];
@@ -682,9 +857,6 @@ void ftl_flush()
 				buf[j] = buffer[i * SECTORS_PER_PAGE + j];
 			}
 
-			find_next_page(&bank, &block, &page, write_lpn);
-			addr = bank * N_PPNS_PB + block * PAGES_PER_BLK + page;
-
 			// old page invalid
 			if (pmt[write_lpn] != -1) {
 				int old_bank = write_lpn % N_BANKS;
@@ -695,11 +867,25 @@ void ftl_flush()
 				used[old_bank][old_block * PAGES_PER_BLK + old_page] = -1;
 			}
 
+			find_next_page(&bank, &block, &page, write_lpn);
+			addr = bank * N_PPNS_PB + block * PAGES_PER_BLK + page;
+
 			pmt[write_lpn] = addr;
 			bufmap[i] = -1;
 
 			nand_write(bank, block, page, buf, &write_lpn);
-			// stats.nand_write++;
+
+			for (int i = 0; i < N_BANKS; i++) {
+				for (int j = 0; j < BLKS_PER_BANK; j++) {
+					if (i == bank && j == block) {
+						age[i][j] = 0;
+					}
+
+					else {
+						age[i][j]++;
+					}
+				}
+			}
 
 			free(buf);
 		}
@@ -724,7 +910,6 @@ void ftl_trim(u32 lpn, u32 npage)
 			int buf_idx = is_in_buffer(lpn);
 
 			if (buf_idx != -1) {
-				printf("here\n");
 				bufmap[buf_idx] = -1;
 			}
 		}
