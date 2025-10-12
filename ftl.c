@@ -20,26 +20,7 @@
  * http://nyx.skku.ac.kr
  */
 
-// #include "ftl1.h"
-#if defined(VERSION_V0)
-    #include "ftl.h"
-#elif defined(VERSION_V1)
-    #include "ftl1.h"
-#elif defined(VERSION_V2)
-    #include "ftl2.h"
-#elif defined(VERSION_V3)
-    #include "ftl3.h"
-#elif defined(VERSION_V4)
-    #include "ftl4.h"
-#elif defined(VERSION_V5)
-    #include "ftl5.h"
-#elif defined(VERSION_V6)
-    #include "ftl6.h"
-#elif defined(VERSION_V7)
-    #include "ftl7.h"
-#elif defined(VERSION_V8)
-    #include "ftl8.h"
-#endif
+#include "ftl1.h"
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -47,7 +28,8 @@
 u32 pmt[N_LPNS];
 int used[N_BANKS][BLKS_PER_BANK * PAGES_PER_BLK];
 int freeblock[N_BANKS];
-u32 buffer[SECTORS_PER_PAGE * N_BUFFERS];
+// u32 buffer[SECTORS_PER_PAGE * N_BUFFERS];
+u32* buffer = NULL;
 int bufmap[N_BUFFERS];
 int age[N_BANKS][BLKS_PER_BANK];
 int count[N_BANKS][BLKS_PER_BANK];
@@ -220,24 +202,6 @@ that you issue in this function
 		victim = cost_age_times_policy(bank);
 	}
 
-    // int victim_cnt = -1;
-
-    // // select victim block
-    // for (int i = 0; i < BLKS_PER_BANK; i++) {
-    //     int cnt = 0;
-        
-    //     for (int j = 0; j < PAGES_PER_BLK; j++) {
-    //         if (used[bank][i * PAGES_PER_BLK + j] == -1) {
-    //             cnt++;
-    //         }
-    //     }
-
-    //     if (cnt > victim_cnt) {
-    //         victim_cnt = cnt;
-    //         victim = i;
-    //     }
-    // }
-
     for (int i = 0; i < PAGES_PER_BLK; i++) {
         if (used[bank][victim * PAGES_PER_BLK + i] == 1) {
             u32* buf = (u32*)malloc(SECTOR_SIZE * SECTORS_PER_PAGE);
@@ -352,13 +316,12 @@ void ftl_open()
         pmt[i] = -1;
     }
 
-    // GC trigger에서 freeblock이 user free block의 개수가 1 ? or 총 free blcok의 개수가 1 ? 아마도 user free block의 개수인듯
     for (int i = 0; i < N_BANKS; i++) {
         freeblock[i] = BLKS_PER_BANK;
     }
 
 	// allocate buf
-	// buffer = (unsigned char*)malloc(BUFFER_SIZE);
+	buffer = (u32*)malloc(BUFFER_SIZE);
 
 	for (int i = 0; i < N_BUFFERS; i++) {
 		bufmap[i] = -1;
@@ -454,12 +417,6 @@ that you issue in this function
 	int start_lpn = lba / SECTORS_PER_PAGE;
 	int end_lpn = (lba + nsect - 1) / SECTORS_PER_PAGE;
 	int npages = end_lpn - start_lpn + 1;
-	// for (int i = 0; i < nsect; i++) {
-	// 	if (i == 0 || (lba + i) % SECTORS_PER_PAGE == 0) {
-	// 		npages++;
-	// 	}
-	// }
-
 
 	if (npages <= N_BUFFERS) {
 		int can_use = 0;
