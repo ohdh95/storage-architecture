@@ -236,6 +236,18 @@ that you issue in this function
 					}
 				}
 			}
+
+			for (int i = 0; i < N_BANKS; i++) {
+				for (int j = 0; j < BLKS_PER_BANK; j++) {
+					if (i == bank && j == copy_block) {
+						age[i][j] = 0;
+					}
+
+					else {
+						age[i][j]++;
+					}
+				}
+			}
             // stats.gc_write++;
 
             pmt[spare] = bank * N_PPNS_PB + copy_block * PAGES_PER_BLK + copy_page;
@@ -677,6 +689,18 @@ that you issue in this function
 					}
 				}
 
+				for (int i = 0; i < N_BANKS; i++) {
+					for (int j = 0; j < BLKS_PER_BANK; j++) {
+						if (i == bank && j == block) {
+							age[i][j] = 0;
+						}
+
+						else {
+							age[i][j]++;
+						}
+					}
+				}
+
 				int tmp_buf_idx = is_in_buffer(write_lpn);
 
 				if (tmp_buf_idx != -1) {
@@ -770,6 +794,18 @@ that you issue in this function
 
 			
 			nand_write(bank, block, page, buf, &write_lpn);
+
+			for (int i = 0; i < N_BANKS; i++) {
+				for (int j = 0; j < BLKS_PER_BANK; j++) {
+					if (i == bank && j == block) {
+						age[i][j] = 0;
+					}
+
+					else {
+						age[i][j]++;
+					}
+				}
+			}
 
 			for (int i = 0; i < N_BANKS; i++) {
 				for (int j = 0; j < BLKS_PER_BANK; j++) {
