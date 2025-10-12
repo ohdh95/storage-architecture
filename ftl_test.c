@@ -15,7 +15,6 @@
 #include <string.h>
 #include <assert.h>
 
-// #include "ftl1.h"
 #if defined(VERSION_V0)
     #include "ftl.h"
 #elif defined(VERSION_V1)

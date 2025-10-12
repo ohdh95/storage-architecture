@@ -50,14 +50,7 @@ enum gc_policy {
 	gc_cat
 };
 
-// #define GC_POLICY		gc_greedy
-#if defined(GREEDY)
-    #define GC_POLICY		gc_greedy
-#elif defined(CB)
-    #define GC_POLICY		gc_cb
-#elif defined(CAT)
-    #define GC_POLICY		gc_cat
-#endif
+#define GC_POLICY		gc_cat
 
 /* struct ftl_stats {
 	int gc_cnt;

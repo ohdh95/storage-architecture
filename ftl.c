@@ -20,7 +20,7 @@
  * http://nyx.skku.ac.kr
  */
 
-#include "ftl1.h"
+#include "ftl.h"
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -28,7 +28,6 @@
 u32 pmt[N_LPNS];
 int used[N_BANKS][BLKS_PER_BANK * PAGES_PER_BLK];
 int freeblock[N_BANKS];
-// u32 buffer[SECTORS_PER_PAGE * N_BUFFERS];
 u32* buffer = NULL;
 int bufmap[N_BUFFERS];
 int age[N_BANKS][BLKS_PER_BANK];
