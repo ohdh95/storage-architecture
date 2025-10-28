@@ -1,0 +1,28 @@
+Bank: 2
+Blocks / Bank: 8 blocks
+Pages / Block: 8 pages
+Sectors per Page: 8
+OP ratio: 7%
+Physical Blocks: 16
+User Blocks: 12
+OP Blocks: 2
+PPNs: 128
+LPNs: 96
+
+Write(1,7): [ f5 43 3b af 6d 1b 7a ]
+Read(0,8): [ ffffffff f5 43 3b af 6d 1b 7a ]
+Write(1,8): [ 91 50 39 73 e9 e3 e6 a9 ]
+Read(0,16): [ ffffffff 91 50 39 73 e9 e3 e6 a9 ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ]
+
+Results ------
+Host read: 24(sectors), write: 15(sectors)
+Nand read: 3(pages), write: 3(pages)
+GC copy: 0
+Number of GCs: 0
+Valid page copies per GC: -nan pages
+MAP writes : 0
+Map GC copy: 0
+Number of MAP GCs : 0
+Valid page copies per Map GC: -nan pages
+Cache hit rate : 80.00 %
+WAF: 1.00

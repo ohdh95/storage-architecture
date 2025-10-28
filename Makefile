@@ -15,7 +15,7 @@
 STUDENT_ID = 2021000000
 
 CC	= gcc
-CFLAGS	= -g -O2 -Wall -std=c99
+CFLAGS	= -g -O0 -Wall -std=c99
 RM	= rm
 TAR	= tar
 
