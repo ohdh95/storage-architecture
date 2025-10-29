@@ -9,7 +9,26 @@
  * http://nyx.skku.ac.kr
  */
 
-#include "ftl.h"
+#include "ftl1.h"
+// #if defined(VERSION_V0)
+//     #include "ftl.h"
+// #elif defined(VERSION_V1)
+// 	#include "ftl1.h"
+// #elif defined(VERSION_V2)
+//     #include "ftl2.h"
+// #elif defined(VERSION_V3)
+//     #include "ftl3.h"
+// #elif defined(VERSION_V4)
+//     #include "ftl4.h"
+// #elif defined(VERSION_V5)
+//     #include "ftl5.h"
+// #elif defined(VERSION_V6)
+//     #include "ftl6.h"
+// #elif defined(VERSION_V7)
+//     #include "ftl7.h"
+// #elif defined(VERSION_V8)
+//     #include "ftl8.h"
+// #endif
 
 int used[N_BANKS][BLKS_PER_BANK * PAGES_PER_BLK];
 int blk_type[N_BANKS][BLKS_PER_BANK]; // -1: unused, 0: data block, 1: map block
@@ -34,6 +53,7 @@ static void map_write(u32 bank, u32 map_page, u32 cache_slot);
 static void map_read(u32 bank, u32 map_page, u32 cache_slot);
 
 void find_next_trans_page(u32 bank, int* block, int* page) {
+	// 첫 시작
 	if (cur_trans_block[bank] == -1) {
 		// find new block
 		for (u32 i = 0; i < BLKS_PER_BANK; i++) {
@@ -49,8 +69,10 @@ void find_next_trans_page(u32 bank, int* block, int* page) {
 		}
 	}
 
+	// cur trans block 정해져 있음
 	else {
 		for (u32 i = 0; i < PAGES_PER_BLK; i++) {
+			// cur trans block의 빈 page
 			if (used[bank][cur_trans_block[bank] * PAGES_PER_BLK + i] == 0) {
 				*block = cur_trans_block[bank];
 				*page = i;
@@ -59,14 +81,31 @@ void find_next_trans_page(u32 bank, int* block, int* page) {
 			}
 		}
 
+		// 새로운 trans block 할당
 		for (u32 i = 0; i < BLKS_PER_BANK; i++) {
 			if (blk_type[bank][i] == -1) {
 				blk_type[bank][i] = 1; // map block
 				cur_trans_block[bank] = i;
 				*block = cur_trans_block[bank];
-				*page = 0;
-				trans_freeblock[bank]--;
-				used[bank][cur_trans_block[bank] * PAGES_PER_BLK + 0] = 1;
+				int flag = 0;
+				if (trans_freeblock[bank] == 1) {
+					printf("trans GC triggered\n");
+					map_garbage_collection(bank);
+				}
+
+				for (int j = 0; j < PAGES_PER_BLK; j++) {
+					if (used[bank][cur_data_block[bank] * PAGES_PER_BLK + j] == 0) {
+						*page = j;
+						trans_freeblock[bank]--;
+						used[bank][cur_data_block[bank] * PAGES_PER_BLK + j] = 1;
+						flag = 1;
+					}
+				}
+
+				if (flag == 0) {
+					printf("ERROR: no free data page\n");
+				}
+
 				return;
 			}
 		}
@@ -104,9 +143,25 @@ void find_next_data_page(u32 bank, int* block, int* page) {
 				blk_type[bank][i] = 0; // data block
 				cur_data_block[bank] = i;
 				*block = cur_data_block[bank];
-				*page = 0;
-				data_freeblock[bank]--;
-				used[bank][cur_data_block[bank] * PAGES_PER_BLK + 0] = 1;
+				int flag = 0;
+				if (data_freeblock[bank] == 1) {
+					printf("data GC triggered\n");
+					garbage_collection(bank);
+				}
+
+				for (int j = 0; j < PAGES_PER_BLK; j++) {
+					if (used[bank][cur_data_block[bank] * PAGES_PER_BLK + j] == 0) {
+						*page = j;
+						data_freeblock[bank]--;
+						used[bank][cur_data_block[bank] * PAGES_PER_BLK + j] = 1;
+						flag = 1;
+					}
+				}
+
+				if (flag == 0) {
+					printf("ERROR: no free data page\n");
+				}
+				
 				return;
 			}
 		}
@@ -193,6 +248,7 @@ int get_cmt_index(u32 lpn) {
 
 static void map_write(u32 bank, u32 map_page, u32 cache_slot)
 {
+	// printf("map write called\n");
 	/* you use this function when you must flush
 	 * cache from CMT to NAND MAP area
 	 * flush cache with LRU policy and fix GTD!!
@@ -220,6 +276,7 @@ static void map_write(u32 bank, u32 map_page, u32 cache_slot)
 
 static void map_read(u32 bank, u32 map_page, u32 cache_slot)
 {
+	// printf("map read called\n");
 	/* you use this function when you must load 
 	 * L2P from NAND MAP area to CMT
 	 * find L2P MAP with GTD and fill CMT!!
@@ -231,12 +288,12 @@ static void map_read(u32 bank, u32 map_page, u32 cache_slot)
 	int block = (addr - bank * N_PPNS_PB) / PAGES_PER_BLK;
 	int page = (addr - bank * N_PPNS_PB) % PAGES_PER_BLK;
 
+	nand_read(bank, block, page, buf, &spare);
+	stats.map_read++;
+
 	for (u32 i = 0; i < N_MAP_ENTRIES_PER_PAGE; i++) {
 		cmt[bank][cache_slot][i] = buf[i];
 	}
-
-	nand_read(bank, block, page, buf, &spare);
-	stats.map_read++;
 
 	free(buf);
 
@@ -248,6 +305,78 @@ static void map_garbage_collection(u32 bank)
 	/* stats.map_gc_cnt++ every map_garbage_collection call
 	 * stats.map_gc_copy++ every nand_write call
 	 */
+	stats.map_gc_cnt++;
+
+	int victim = -1;
+	int victim_cnt = -1;
+
+	// select victim block
+	for (int i = 0; i < BLKS_PER_BANK; i++) {
+		if (blk_type[bank][i] == 0) {
+			int cnt = 0;
+
+			for (int j = 0; j < PAGES_PER_BLK; j++) {
+				if (used[bank][i * PAGES_PER_BLK + j] == -1) {
+					cnt++;
+				}
+			}
+
+			if (cnt > victim_cnt) {
+				victim = i;
+				victim_cnt = cnt;
+			}
+		}
+	}
+
+	// valid copy
+	for (int i = 0; i < PAGES_PER_BLK; i++) {
+        if (used[bank][victim * PAGES_PER_BLK + i] == -1) {
+            // used[bank][victim * PAGES_PER_BLK + i] = 0;
+        }
+
+        if (used[bank][victim * PAGES_PER_BLK + i] == 1) {
+            u32* buf = (u32*)malloc(SECTOR_SIZE * SECTORS_PER_PAGE);
+            u32 spare;
+            // printf("GC copy read: bank: %d, block: %d, page: %d\n", bank, victim, i);
+            nand_read(bank, victim, i, buf, &spare);
+            stats.gc_read++;
+
+            int copy_block = -1;
+            int copy_page = -1;
+
+            for (int i = 0; i < BLKS_PER_BANK * PAGES_PER_BLK; i++) {
+                if (used[bank][i] == 0) {
+                    copy_block = i / PAGES_PER_BLK;
+                    copy_page = i % PAGES_PER_BLK;
+                    used[bank][i] = 1;
+
+                    break;
+                }
+            }
+
+            
+            nand_write(bank, copy_block, copy_page, buf, &spare);
+            // printf("GC copy write: bank: %d, block: %d, page: %d, spare: %d, pmt[spare - before]: %d\n", bank, copy_block, copy_page, spare, pmt[spare]);
+            stats.gc_write++;
+
+            pmt[spare] = bank * N_PPNS_PB + copy_block * PAGES_PER_BLK + copy_page;
+
+            // printf("pmt[spare - after]: %d\n", pmt[spare]);
+            used[bank][copy_block * PAGES_PER_BLK + copy_page] = 1;
+            
+            // used[bank][victim * PAGES_PER_BLK + i] = 0;
+
+            free(buf);
+        }
+    }
+	nand_erase(bank, victim);
+
+    for (int i = 0; i < PAGES_PER_BLK; i++) {
+        used[bank][victim * PAGES_PER_BLK + i] = 0;
+    }
+
+    trans_freeblock[bank]++;
+
 	return;
 }
 static void garbage_collection(u32 bank)
@@ -255,6 +384,75 @@ static void garbage_collection(u32 bank)
 	/* stats.gc_cnt++ every garbage_collection call
 	 * stats.gc_copy++ every nand_write call
 	 */
+	stats.gc_cnt++;
+
+	int victim = -1;
+	int victim_cnt = -1;
+
+	// select victim block
+	for (int i = 0; i < BLKS_PER_BANK; i++) {
+		if (blk_type[bank][i] == 0) {
+			int cnt = 0;
+
+			for (int j = 0; j < PAGES_PER_BLK; j++) {
+				if (used[bank][i * PAGES_PER_BLK + j] == -1) {
+					cnt++;
+				}
+			}
+
+			if (cnt > victim_cnt) {
+				victim = i;
+				victim_cnt = cnt;
+			}
+		}
+	}
+
+	// valid copy
+	for (int i = 0; i < PAGES_PER_BLK; i++) {
+        if (used[bank][victim * PAGES_PER_BLK + i] == 1) {
+            u32* buf = (u32*)malloc(SECTOR_SIZE * SECTORS_PER_PAGE);
+            u32 spare;
+            // printf("GC copy read: bank: %d, block: %d, page: %d\n", bank, victim, i);
+            nand_read(bank, victim, i, buf, &spare);
+            stats.gc_read++;
+
+            int copy_block = -1;
+            int copy_page = -1;
+
+            for (int i = 0; i < BLKS_PER_BANK * PAGES_PER_BLK; i++) {
+                if (used[bank][i] == 0) {
+                    copy_block = i / PAGES_PER_BLK;
+                    copy_page = i % PAGES_PER_BLK;
+                    used[bank][i] = 1;
+
+                    break;
+                }
+            }
+
+            
+            nand_write(bank, copy_block, copy_page, buf, &spare);
+            // printf("GC copy write: bank: %d, block: %d, page: %d, spare: %d, pmt[spare - before]: %d\n", bank, copy_block, copy_page, spare, pmt[spare]);
+            stats.gc_write++;
+
+            pmt[spare] = bank * N_PPNS_PB + copy_block * PAGES_PER_BLK + copy_page;
+
+            // printf("pmt[spare - after]: %d\n", pmt[spare]);
+            used[bank][copy_block * PAGES_PER_BLK + copy_page] = 1;
+            
+            // used[bank][victim * PAGES_PER_BLK + i] = 0;
+
+            free(buf);
+        }
+    }
+
+	nand_erase(bank, victim);
+
+    for (int i = 0; i < PAGES_PER_BLK; i++) {
+        used[bank][victim * PAGES_PER_BLK + i] = 0;
+    }
+
+    data_freeblock[bank]++;
+
 	return;
 }
 
@@ -300,25 +498,53 @@ void ftl_read(u32 lba, u32 nsect, u32 *read_buffer)
 			int lpn = (lba + i) / SECTORS_PER_PAGE;
 			int bank = lpn % N_BANKS;
 			int mvpn = (lpn / N_BANKS) / 8;
-			int index = get_cmt_index(lpn);
-			int ppn = cmt[bank][index][(lpn / N_BANKS) % 8];
+			int index;
+			int ppn;
+			int flag = 0;
 
-			if (ppn != -1) {
-				int addr = ppn - bank * N_PPNS_PB;
-				int block = addr / PAGES_PER_BLK;
-				int page = addr % PAGES_PER_BLK;
-				int tmp_lpn;
-
-				nand_read(bank, block, page, buf, &tmp_lpn);
-				stats.nand_read++;
-
-				for (int j = 0;; j++) {
-					read_buffer[i + j] = buf[(lba + i + j) % SECTORS_PER_PAGE];
-
-					if ((lba + i + j) % SECTORS_PER_PAGE == SECTORS_PER_PAGE - 1 || i + j == nsect - 1)
+			if (gtd[bank][mvpn] == -1) {
+				for (int j = 0; j < N_CACHED_MAP_PAGE_PB; j++) {
+					if (cmt_mvpn[bank][j] == mvpn) {
+						ppn = cmt[bank][j][(lpn / N_BANKS) % 8];
+						flag = 1;
 						break;
+					}
+				}
+			}
+
+			else {
+				flag = 1;
+			}
+
+			if (flag == 1) {
+				index = get_cmt_index(lpn);
+				ppn = cmt[bank][index][(lpn / N_BANKS) % 8];
+				if (ppn != -1) {
+					int addr = ppn - bank * N_PPNS_PB;
+					int block = addr / PAGES_PER_BLK;
+					int page = addr % PAGES_PER_BLK;
+					int tmp_lpn;
+
+					nand_read(bank, block, page, buf, &tmp_lpn);
+					stats.nand_read++;
+
+					for (int j = 0;; j++) {
+						read_buffer[i + j] = buf[(lba + i + j) % SECTORS_PER_PAGE];
+
+						if ((lba + i + j) % SECTORS_PER_PAGE == SECTORS_PER_PAGE - 1 || i + j == nsect - 1)
+							break;
+					}
+
 				}
 
+				else {
+					for (int j = 0;; j++) {
+						read_buffer[i + j] = 0xffffffff;
+
+						if ((lba + i + j) % SECTORS_PER_PAGE == SECTORS_PER_PAGE - 1 || i + j == nsect - 1)
+							break;
+					}
+				}
 			}
 
 			else {
@@ -351,11 +577,16 @@ void ftl_write(u32 lba, u32 nsect, u32 *write_buffer)
     int addr;
     u32* buf = (u32*)malloc(SECTOR_SIZE * SECTORS_PER_PAGE);
     // int flag = 0;
-	int ppn;
+	int ppn = -1;
 	int mvpn = (lpn / N_BANKS) / 8;
 
 	if (gtd[bank][mvpn] == -1) {
-		ppn = -1;
+		for (int i = 0; i < N_CACHED_MAP_PAGE_PB; i++) {
+			if (cmt_mvpn[bank][i] == mvpn) {
+				ppn = cmt[bank][i][(lpn / N_BANKS) % 8];
+				break;
+			}
+		}
 	}
 
 	else {
@@ -395,7 +626,6 @@ void ftl_write(u32 lba, u32 nsect, u32 *write_buffer)
 			int index;
 
 			bank = write_lpn % N_BANKS;
-			
 			find_next_data_page(bank, &block, &page);
 
 			addr = bank * N_PPNS_PB + block * PAGES_PER_BLK + page;
@@ -416,6 +646,9 @@ void ftl_write(u32 lba, u32 nsect, u32 *write_buffer)
 				if (flag == 0) {
 					index = get_free_cmt_slot(write_lpn);
 
+					for (int j = 0; j < 8; j++) {
+						cmt[bank][index][j] = -1;
+					}
 					cmt[bank][index][(write_lpn / N_BANKS) % 8] = addr;
 					cmt_mvpn[bank][index] = mvpn;
 					cmt_dirty[bank][index] = 1;
@@ -428,21 +661,25 @@ void ftl_write(u32 lba, u32 nsect, u32 *write_buffer)
 				}
 			}
 
+			
+			index = get_cmt_index(write_lpn);
+
+			if (gtd[bank][mvpn] != -1) {
+				cmt[bank][index][(write_lpn / N_BANKS) % 8] = addr;
+				cmt_dirty[bank][index] = 1;
+			}
+			
+			int data_ppn = cmt[bank][index][(write_lpn / N_BANKS) % 8];
+
 			// nand에 있음
-			else {
-				index = get_cmt_index(write_lpn);
-				int data_ppn = cmt[bank][index][(write_lpn / N_BANKS) % 8];
+			if (gtd[bank][mvpn] != -1 && data_ppn != -1) {
 				int old_bank = write_lpn % N_BANKS;
                 int old_addr = data_ppn - old_bank * N_PPNS_PB;
                 int old_block = old_addr / PAGES_PER_BLK;
                 int old_page = old_addr % PAGES_PER_BLK;
 
                 used[old_bank][old_block * PAGES_PER_BLK + old_page] = -1;
-
-                // if (flag == 0)
                 stats.nand_read++;
-                // else
-                //     flag = 0;
 			}
             
             nand_write(bank, block, page, buf, &write_lpn);
@@ -454,15 +691,29 @@ void ftl_write(u32 lba, u32 nsect, u32 *write_buffer)
 	if ((lba + nsect - 1) % SECTORS_PER_PAGE != SECTORS_PER_PAGE - 1) {
         int write_lpn = (lba + nsect - 1) / SECTORS_PER_PAGE;
 		bank = write_lpn % N_BANKS;
-		int write_ppn;
+		int write_ppn = -1;
 		int write_mvpn = (write_lpn / N_BANKS) / 8;
+		int index = -1;
+		int mvpn = (write_lpn / N_BANKS) / 8;
 
+		find_next_data_page(bank, &block, &page);
+        addr = bank * N_PPNS_PB + block * PAGES_PER_BLK + page;
+
+		// nand에 없음
 		if (gtd[bank][write_mvpn] == -1) {
-			write_ppn = -1;
+			for (int i = 0; i < N_CACHED_MAP_PAGE_PB; i++) {
+				// cmt에 있음
+				if (cmt_mvpn[bank][i] == write_mvpn) {
+					write_ppn = cmt[bank][i][(write_lpn / N_BANKS) % 8];
+					index = i;
+					break;
+				}
+			}
 		}
 
 		else {
-			write_ppn = cmt[bank][get_cmt_index(write_lpn)][(write_lpn / N_BANKS) % 8];
+			index = get_cmt_index(write_lpn);
+			write_ppn = cmt[bank][index][(write_lpn / N_BANKS) % 8];
 		}
 
         // old data exists
@@ -482,6 +733,13 @@ void ftl_write(u32 lba, u32 nsect, u32 *write_buffer)
                 if (i % SECTORS_PER_PAGE == SECTORS_PER_PAGE - 1)
                     break;
             }
+
+			used[old_bank][old_block * PAGES_PER_BLK + old_page] = -1;
+            stats.nand_read++;
+
+			index = get_cmt_index(write_lpn);
+			cmt[bank][index][(write_lpn / N_BANKS) % 8] = addr;
+			cmt_dirty[bank][index] = 1;
         }
 
         // no old data
@@ -489,27 +747,23 @@ void ftl_write(u32 lba, u32 nsect, u32 *write_buffer)
             for (int i = lba + nsect;; i++) {
                 buf[i % SECTORS_PER_PAGE] = 0xffffffff;
 
-                if (i % SECTORS_PER_PAGE == SECTORS_PER_PAGE - 1)
+                if (i % SECTORS_PER_PAGE == SECTORS_PER_PAGE - 1) {
+					if (index == -1) {
+						index = get_free_cmt_slot(write_lpn);
+
+						for (int j = 0; j < 8; j++) {
+							cmt[bank][index][j] = -1;
+						}
+					}
+
+					cmt[bank][index][(write_lpn / N_BANKS) % 8] = addr;
+					cmt_mvpn[bank][index] = write_mvpn;
+					cmt_dirty[bank][index] = 1;
+
                     break;
+				}
             }
         }
-
-        find_next_data_page(bank, &block, &page);
-        addr = bank * N_PPNS_PB + block * PAGES_PER_BLK + page;
-
-        // old page invalid
-        if (write_ppn != -1) {
-            int old_bank = write_lpn % N_BANKS;
-            int old_addr = write_ppn - old_bank * N_PPNS_PB;
-            int old_block = old_addr / PAGES_PER_BLK;
-            int old_page = old_addr % PAGES_PER_BLK;
-
-            used[old_bank][old_block * PAGES_PER_BLK + old_page] = -1;
-            stats.nand_read++;
-        }
-
-        cmt[bank][get_cmt_index(write_lpn)][(write_lpn / N_BANKS) % 8] = addr;
-		cmt_dirty[bank][get_cmt_index(write_lpn)] = 1;
 		
         nand_write(bank, block, page, buf, &write_lpn);
         stats.nand_write++;

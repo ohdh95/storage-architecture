@@ -1,0 +1,18 @@
+437c437
+< Nand read: 565(pages), write: 323(pages)
+---
+> Nand read: 658(pages), write: 323(pages)
+439,441c439,441
+< Number of GCs: 0
+< Valid page copies per GC: -nan pages
+< MAP writes : 0
+---
+> Number of GCs: 4
+> Valid page copies per GC: 0.00 pages
+> MAP writes : 36
+445,446c445,446
+< Cache hit rate : 100.00 %
+< WAF: 1.00
+---
+> Cache hit rate : 90.45 %
+> WAF: 1.15

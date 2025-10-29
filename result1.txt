@@ -1,0 +1,22 @@
+15613,15622c15613,15622
+< Nand read: 21007(pages), write: 12276(pages)
+< GC copy: 0
+< Number of GCs: 0
+< Valid page copies per GC: -nan pages
+< MAP writes : 0
+< Map GC copy: 0
+< Number of MAP GCs : 0
+< Valid page copies per Map GC: -nan pages
+< Cache hit rate : 100.00 %
+< WAF: 1.00
+---
+> Nand read: 24589(pages), write: 12276(pages)
+> GC copy: 6190
+> Number of GCs: 899
+> Valid page copies per GC: 6.89 pages
+> MAP writes : 7534
+> Map GC copy: 4832
+> Number of MAP GCs : 727
+> Valid page copies per Map GC: 6.65 pages
+> Cache hit rate : 90.46 %
+> WAF: 3.07

@@ -24,6 +24,12 @@ SRCS	= ftl_test.c ftl.c nand.c
 HEADERS	= nand.h ftl.h
 OBJS	= $(SRCS:.c=.o)
 
+# CUSTOM_HEADER가 비어있으면 0으로 기본값을 설정합니다.
+h ?= 0
+
+# CUSTOM_HEADER의 값을 VERSION_V* 형태로 변환하여 CFLAGS에 추가합니다.
+CFLAGS += -DVERSION_V$(h)
+
 all: $(OBJS)
 	$(CC) $(CFLAGS) -o $(TARGET) $(OBJS)
 

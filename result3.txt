@@ -1,0 +1,14 @@
+421c421
+< Nand read: 284(pages), write: 191(pages)
+---
+> Nand read: 379(pages), write: 191(pages)
+425c425
+< MAP writes : 0
+---
+> MAP writes : 24
+429,430c429,430
+< Cache hit rate : 100.00 %
+< WAF: 1.00
+---
+> Cache hit rate : 89.89 %
+> WAF: 1.17

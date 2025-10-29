@@ -1,0 +1,22 @@
+20680,20689c20680,20689
+< Nand read: 69318(pages), write: 54519(pages)
+< GC copy: 0
+< Number of GCs: 0
+< Valid page copies per GC: -nan pages
+< MAP writes : 0
+< Map GC copy: 0
+< Number of MAP GCs : 0
+< Valid page copies per Map GC: -nan pages
+< Cache hit rate : 100.00 %
+< WAF: 1.00
+---
+> Nand read: 112915(pages), write: 54519(pages)
+> GC copy: 33229
+> Number of GCs: 5174
+> Valid page copies per GC: 6.42 pages
+> MAP writes : 54763
+> Map GC copy: 17844
+> Number of MAP GCs : 4484
+> Valid page copies per Map GC: 3.98 pages
+> Cache hit rate : 63.95 %
+> WAF: 3.16

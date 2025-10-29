@@ -1,0 +1,22 @@
+40891,40900c40891,40900
+< Nand read: 624343(pages), write: 336235(pages)
+< GC copy: 0
+< Number of GCs: 0
+< Valid page copies per GC: -nan pages
+< MAP writes : 26006
+< Map GC copy: 0
+< Number of MAP GCs : 0
+< Valid page copies per Map GC: -nan pages
+< Cache hit rate : 96.18 %
+< WAF: 1.08
+---
+> Nand read: 649814(pages), write: 336235(pages)
+> GC copy: 1016146
+> Number of GCs: 55070
+> Valid page copies per GC: 18.45 pages
+> MAP writes : 1266875
+> Map GC copy: 869881
+> Number of MAP GCs : 88813
+> Valid page copies per Map GC: 9.79 pages
+> Cache hit rate : 30.44 %
+> WAF: 10.89

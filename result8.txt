@@ -1,0 +1,38 @@
+50222d50221
+< trans GC triggered
+50307d50305
+< trans GC triggered
+50390d50387
+< trans GC triggered
+50445d50441
+< trans GC triggered
+50544d50539
+< trans GC triggered
+50689d50683
+< trans GC triggered
+50744d50737
+< trans GC triggered
+50775d50767
+< trans GC triggered
+51055,51064c51047,51056
+< Nand read: 814021(pages), write: 424374(pages)
+< GC copy: 0
+< Number of GCs: 0
+< Valid page copies per GC: -nan pages
+< MAP writes : 76993
+< Map GC copy: 0
+< Number of MAP GCs : 0
+< Valid page copies per Map GC: -nan pages
+< Cache hit rate : 89.86 %
+< WAF: 1.19
+---
+> Nand read: 810371(pages), write: 424374(pages)
+> GC copy: 596042
+> Number of GCs: 20414
+> Valid page copies per GC: 29.20 pages
+> MAP writes : 909775
+> Map GC copy: 492765
+> Number of MAP GCs : 29081
+> Valid page copies per Map GC: 16.94 pages
+> Cache hit rate : 30.80 %
+> WAF: 5.97
