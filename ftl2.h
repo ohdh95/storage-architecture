@@ -21,9 +21,9 @@ typedef unsigned int 		u32;
 
 #define SECTOR_SIZE					sizeof(u32)
 #define N_BANKS						8
-#define BLKS_PER_BANK				400
+#define BLKS_PER_BANK				40
 #define PAGES_PER_BLK				32
-#define SECTORS_PER_PAGE			(PAGE_DATA_SIZE / sizeof(u32)) // 8
+#define SECTORS_PER_PAGE			(PAGE_DATA_SIZE / sizeof(u32))
 
 #define OP_RATIO					7
 

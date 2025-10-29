@@ -1,13 +1,13 @@
 Bank: 8
-Blocks / Bank: 400000 blocks
+Blocks / Bank: 48 blocks
 Pages / Block: 16 pages
 Sectors per Page: 8
 OP ratio: 7%
-Physical Blocks: 3200000
-User Blocks: 2616816
-OP Blocks: 183184
-PPNs: 51200000
-LPNs: 41869056
+Physical Blocks: 384
+User Blocks: 312
+OP Blocks: 24
+PPNs: 6144
+LPNs: 4992
 
 Write(0,8): [ e8 9e f1 65 6a 21 7d 8e ]
 Read(0,8): [ e8 9e f1 65 6a 21 7d 8e ]
@@ -15610,13 +15610,13 @@ Read(28608,64): [ 69 22 b9 ea e8 71 1f 61 5b ba e2 f6 8e 80 da 37 7c 55 98 44 45
 
 Results ------
 Host read: 114688(sectors), write: 71662(sectors)
-Nand read: 21007(pages), write: 12276(pages)
-GC copy: 0
-Number of GCs: 0
-Valid page copies per GC: -nan pages
-MAP writes : 0
-Map GC copy: 0
-Number of MAP GCs : 0
-Valid page copies per Map GC: -nan pages
-Cache hit rate : 100.00 %
-WAF: 1.00
+Nand read: 24589(pages), write: 12276(pages)
+GC copy: 555
+Number of GCs: 492
+Valid page copies per GC: 1.13 pages
+MAP writes : 1344
+Map GC copy: 57
+Number of MAP GCs : 69
+Valid page copies per Map GC: 0.83 pages
+Cache hit rate : 94.13 %
+WAF: 1.22

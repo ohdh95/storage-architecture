@@ -1,34 +1,14 @@
-2,3c2,3
-< Blocks / Bank: 400000 blocks
-< Pages / Block: 16 pages
+491536,491544c491536,491544
+< GC copy: 1958608
+< Number of GCs: 83027
+< Valid page copies per GC: 23.59 pages
+< MAP writes : 656314
+< Map GC copy: 1235981
+< Number of MAP GCs : 120295
+< Valid page copies per Map GC: 10.27 pages
+< Cache hit rate : 64.95 %
+< WAF: 8.84
 ---
-> Blocks / Bank: 40 blocks
-> Pages / Block: 32 pages
-6,10c6,10
-< Physical Blocks: 3200000
-< User Blocks: 2616816
-< OP Blocks: 183184
-< PPNs: 51200000
-< LPNs: 41869056
----
-> Physical Blocks: 320
-> User Blocks: 256
-> OP Blocks: 24
-> PPNs: 10240
-> LPNs: 8192
-491535,491544c491535,491544
-< Nand read: 919238(pages), write: 706409(pages)
-< GC copy: 0
-< Number of GCs: 0
-< Valid page copies per GC: -nan pages
-< MAP writes : 0
-< Map GC copy: 0
-< Number of MAP GCs : 0
-< Valid page copies per Map GC: -nan pages
-< Cache hit rate : 100.00 %
-< WAF: 1.00
----
-> Nand read: 1405650(pages), write: 706409(pages)
 > GC copy: 1979512
 > Number of GCs: 83680
 > Valid page copies per GC: 23.66 pages

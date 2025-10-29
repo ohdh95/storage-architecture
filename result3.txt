@@ -1,34 +1,4 @@
-1,3c1,3
-< Bank: 8
-< Blocks / Bank: 400000 blocks
-< Pages / Block: 16 pages
----
-> Bank: 2
-> Blocks / Bank: 24 blocks
-> Pages / Block: 8 pages
-6,10c6,10
-< Physical Blocks: 3200000
-< User Blocks: 2616816
-< OP Blocks: 183184
-< PPNs: 51200000
-< LPNs: 41869056
----
-> Physical Blocks: 48
-> User Blocks: 38
-> OP Blocks: 4
-> PPNs: 384
-> LPNs: 304
-421c421
-< Nand read: 284(pages), write: 191(pages)
----
-> Nand read: 379(pages), write: 191(pages)
-425c425
-< MAP writes : 0
----
-> MAP writes : 24
-429,430c429,430
-< Cache hit rate : 100.00 %
-< WAF: 1.00
+429c429
+< Cache hit rate : 93.55 %
 ---
 > Cache hit rate : 89.89 %
-> WAF: 1.17

@@ -15,7 +15,7 @@
 
 #include "nand.h"
 
-#define DEBUG 1
+#define DEBUG 0
 /*
  * define your own data structure for NAND flash implementation
  */
