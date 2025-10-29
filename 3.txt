@@ -1,13 +1,13 @@
-Bank: 2
-Blocks / Bank: 24 blocks
-Pages / Block: 8 pages
+Bank: 8
+Blocks / Bank: 400000 blocks
+Pages / Block: 16 pages
 Sectors per Page: 8
 OP ratio: 7%
-Physical Blocks: 48
-User Blocks: 38
-OP Blocks: 4
-PPNs: 384
-LPNs: 304
+Physical Blocks: 3200000
+User Blocks: 2616816
+OP Blocks: 183184
+PPNs: 51200000
+LPNs: 41869056
 
 Write(0,8): [ f5 43 3b af 6d 1b 7a 91 ]
 Read(0,8): [ f5 43 3b af 6d 1b 7a 91 ]

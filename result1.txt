@@ -1,3 +1,19 @@
+2c2
+< Blocks / Bank: 400000 blocks
+---
+> Blocks / Bank: 40 blocks
+6,10c6,10
+< Physical Blocks: 3200000
+< User Blocks: 2616816
+< OP Blocks: 183184
+< PPNs: 51200000
+< LPNs: 41869056
+---
+> Physical Blocks: 320
+> User Blocks: 256
+> OP Blocks: 24
+> PPNs: 5120
+> LPNs: 4096
 15613,15622c15613,15622
 < Nand read: 21007(pages), write: 12276(pages)
 < GC copy: 0

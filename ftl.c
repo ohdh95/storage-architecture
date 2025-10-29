@@ -90,15 +90,16 @@ void find_next_trans_page(u32 bank, int* block, int* page) {
 				int flag = 0;
 				if (trans_freeblock[bank] == 1) {
 					printf("trans GC triggered\n");
-					map_garbage_collection(bank);
+					// map_garbage_collection(bank);
 				}
 
 				for (int j = 0; j < PAGES_PER_BLK; j++) {
-					if (used[bank][cur_data_block[bank] * PAGES_PER_BLK + j] == 0) {
+					if (used[bank][cur_trans_block[bank] * PAGES_PER_BLK + j] == 0) {
 						*page = j;
 						trans_freeblock[bank]--;
-						used[bank][cur_data_block[bank] * PAGES_PER_BLK + j] = 1;
+						used[bank][cur_trans_block[bank] * PAGES_PER_BLK + j] = 1;
 						flag = 1;
+						break;
 					}
 				}
 
@@ -146,7 +147,7 @@ void find_next_data_page(u32 bank, int* block, int* page) {
 				int flag = 0;
 				if (data_freeblock[bank] == 1) {
 					printf("data GC triggered\n");
-					garbage_collection(bank);
+					// garbage_collection(bank);
 				}
 
 				for (int j = 0; j < PAGES_PER_BLK; j++) {
@@ -155,6 +156,7 @@ void find_next_data_page(u32 bank, int* block, int* page) {
 						data_freeblock[bank]--;
 						used[bank][cur_data_block[bank] * PAGES_PER_BLK + j] = 1;
 						flag = 1;
+						break;
 					}
 				}
 
@@ -307,75 +309,75 @@ static void map_garbage_collection(u32 bank)
 	 */
 	stats.map_gc_cnt++;
 
-	int victim = -1;
-	int victim_cnt = -1;
+	// int victim = -1;
+	// int victim_cnt = -1;
 
-	// select victim block
-	for (int i = 0; i < BLKS_PER_BANK; i++) {
-		if (blk_type[bank][i] == 0) {
-			int cnt = 0;
+	// // select victim block
+	// for (int i = 0; i < BLKS_PER_BANK; i++) {
+	// 	if (blk_type[bank][i] == 0) {
+	// 		int cnt = 0;
 
-			for (int j = 0; j < PAGES_PER_BLK; j++) {
-				if (used[bank][i * PAGES_PER_BLK + j] == -1) {
-					cnt++;
-				}
-			}
+	// 		for (int j = 0; j < PAGES_PER_BLK; j++) {
+	// 			if (used[bank][i * PAGES_PER_BLK + j] == -1) {
+	// 				cnt++;
+	// 			}
+	// 		}
 
-			if (cnt > victim_cnt) {
-				victim = i;
-				victim_cnt = cnt;
-			}
-		}
-	}
+	// 		if (cnt > victim_cnt) {
+	// 			victim = i;
+	// 			victim_cnt = cnt;
+	// 		}
+	// 	}
+	// }
 
-	// valid copy
-	for (int i = 0; i < PAGES_PER_BLK; i++) {
-        if (used[bank][victim * PAGES_PER_BLK + i] == -1) {
-            // used[bank][victim * PAGES_PER_BLK + i] = 0;
-        }
+	// // valid copy
+	// for (int i = 0; i < PAGES_PER_BLK; i++) {
+    //     if (used[bank][victim * PAGES_PER_BLK + i] == -1) {
+    //         // used[bank][victim * PAGES_PER_BLK + i] = 0;
+    //     }
 
-        if (used[bank][victim * PAGES_PER_BLK + i] == 1) {
-            u32* buf = (u32*)malloc(SECTOR_SIZE * SECTORS_PER_PAGE);
-            u32 spare;
-            // printf("GC copy read: bank: %d, block: %d, page: %d\n", bank, victim, i);
-            nand_read(bank, victim, i, buf, &spare);
-            stats.gc_read++;
+    //     if (used[bank][victim * PAGES_PER_BLK + i] == 1) {
+    //         u32* buf = (u32*)malloc(SECTOR_SIZE * SECTORS_PER_PAGE);
+    //         u32 spare;
+    //         // printf("GC copy read: bank: %d, block: %d, page: %d\n", bank, victim, i);
+    //         nand_read(bank, victim, i, buf, &spare);
+    //         stats.gc_read++;
 
-            int copy_block = -1;
-            int copy_page = -1;
+    //         int copy_block = -1;
+    //         int copy_page = -1;
 
-            for (int i = 0; i < BLKS_PER_BANK * PAGES_PER_BLK; i++) {
-                if (used[bank][i] == 0) {
-                    copy_block = i / PAGES_PER_BLK;
-                    copy_page = i % PAGES_PER_BLK;
-                    used[bank][i] = 1;
+    //         for (int i = 0; i < BLKS_PER_BANK * PAGES_PER_BLK; i++) {
+    //             if (used[bank][i] == 0) {
+    //                 copy_block = i / PAGES_PER_BLK;
+    //                 copy_page = i % PAGES_PER_BLK;
+    //                 used[bank][i] = 1;
 
-                    break;
-                }
-            }
+    //                 break;
+    //             }
+    //         }
 
             
-            nand_write(bank, copy_block, copy_page, buf, &spare);
-            // printf("GC copy write: bank: %d, block: %d, page: %d, spare: %d, pmt[spare - before]: %d\n", bank, copy_block, copy_page, spare, pmt[spare]);
-            stats.gc_write++;
+    //         nand_write(bank, copy_block, copy_page, buf, &spare);
+    //         // printf("GC copy write: bank: %d, block: %d, page: %d, spare: %d, pmt[spare - before]: %d\n", bank, copy_block, copy_page, spare, pmt[spare]);
+    //         stats.gc_write++;
 
-            pmt[spare] = bank * N_PPNS_PB + copy_block * PAGES_PER_BLK + copy_page;
+    //         pmt[spare] = bank * N_PPNS_PB + copy_block * PAGES_PER_BLK + copy_page;
 
-            // printf("pmt[spare - after]: %d\n", pmt[spare]);
-            used[bank][copy_block * PAGES_PER_BLK + copy_page] = 1;
+    //         // printf("pmt[spare - after]: %d\n", pmt[spare]);
+    //         used[bank][copy_block * PAGES_PER_BLK + copy_page] = 1;
             
-            // used[bank][victim * PAGES_PER_BLK + i] = 0;
+    //         // used[bank][victim * PAGES_PER_BLK + i] = 0;
 
-            free(buf);
-        }
-    }
-	nand_erase(bank, victim);
+    //         free(buf);
+    //     }
+    // }
+	// nand_erase(bank, victim);
 
-    for (int i = 0; i < PAGES_PER_BLK; i++) {
-        used[bank][victim * PAGES_PER_BLK + i] = 0;
-    }
+    // for (int i = 0; i < PAGES_PER_BLK; i++) {
+    //     used[bank][victim * PAGES_PER_BLK + i] = 0;
+    // }
 
-    trans_freeblock[bank]++;
+    // trans_freeblock[bank]++;
 
 	return;
 }
@@ -386,72 +388,72 @@ static void garbage_collection(u32 bank)
 	 */
 	stats.gc_cnt++;
 
-	int victim = -1;
-	int victim_cnt = -1;
+	// int victim = -1;
+	// int victim_cnt = -1;
 
-	// select victim block
-	for (int i = 0; i < BLKS_PER_BANK; i++) {
-		if (blk_type[bank][i] == 0) {
-			int cnt = 0;
+	// // select victim block
+	// for (int i = 0; i < BLKS_PER_BANK; i++) {
+	// 	if (blk_type[bank][i] == 0) {
+	// 		int cnt = 0;
 
-			for (int j = 0; j < PAGES_PER_BLK; j++) {
-				if (used[bank][i * PAGES_PER_BLK + j] == -1) {
-					cnt++;
-				}
-			}
+	// 		for (int j = 0; j < PAGES_PER_BLK; j++) {
+	// 			if (used[bank][i * PAGES_PER_BLK + j] == -1) {
+	// 				cnt++;
+	// 			}
+	// 		}
 
-			if (cnt > victim_cnt) {
-				victim = i;
-				victim_cnt = cnt;
-			}
-		}
-	}
+	// 		if (cnt > victim_cnt) {
+	// 			victim = i;
+	// 			victim_cnt = cnt;
+	// 		}
+	// 	}
+	// }
 
-	// valid copy
-	for (int i = 0; i < PAGES_PER_BLK; i++) {
-        if (used[bank][victim * PAGES_PER_BLK + i] == 1) {
-            u32* buf = (u32*)malloc(SECTOR_SIZE * SECTORS_PER_PAGE);
-            u32 spare;
-            // printf("GC copy read: bank: %d, block: %d, page: %d\n", bank, victim, i);
-            nand_read(bank, victim, i, buf, &spare);
-            stats.gc_read++;
+	// // valid copy
+	// for (int i = 0; i < PAGES_PER_BLK; i++) {
+    //     if (used[bank][victim * PAGES_PER_BLK + i] == 1) {
+    //         u32* buf = (u32*)malloc(SECTOR_SIZE * SECTORS_PER_PAGE);
+    //         u32 spare;
+    //         // printf("GC copy read: bank: %d, block: %d, page: %d\n", bank, victim, i);
+    //         nand_read(bank, victim, i, buf, &spare);
+    //         stats.gc_read++;
 
-            int copy_block = -1;
-            int copy_page = -1;
+    //         int copy_block = -1;
+    //         int copy_page = -1;
 
-            for (int i = 0; i < BLKS_PER_BANK * PAGES_PER_BLK; i++) {
-                if (used[bank][i] == 0) {
-                    copy_block = i / PAGES_PER_BLK;
-                    copy_page = i % PAGES_PER_BLK;
-                    used[bank][i] = 1;
+    //         for (int i = 0; i < BLKS_PER_BANK * PAGES_PER_BLK; i++) {
+    //             if (used[bank][i] == 0) {
+    //                 copy_block = i / PAGES_PER_BLK;
+    //                 copy_page = i % PAGES_PER_BLK;
+    //                 used[bank][i] = 1;
 
-                    break;
-                }
-            }
+    //                 break;
+    //             }
+    //         }
 
             
-            nand_write(bank, copy_block, copy_page, buf, &spare);
-            // printf("GC copy write: bank: %d, block: %d, page: %d, spare: %d, pmt[spare - before]: %d\n", bank, copy_block, copy_page, spare, pmt[spare]);
-            stats.gc_write++;
+    //         nand_write(bank, copy_block, copy_page, buf, &spare);
+    //         // printf("GC copy write: bank: %d, block: %d, page: %d, spare: %d, pmt[spare - before]: %d\n", bank, copy_block, copy_page, spare, pmt[spare]);
+    //         stats.gc_write++;
 
-            pmt[spare] = bank * N_PPNS_PB + copy_block * PAGES_PER_BLK + copy_page;
+    //         pmt[spare] = bank * N_PPNS_PB + copy_block * PAGES_PER_BLK + copy_page;
 
-            // printf("pmt[spare - after]: %d\n", pmt[spare]);
-            used[bank][copy_block * PAGES_PER_BLK + copy_page] = 1;
+    //         // printf("pmt[spare - after]: %d\n", pmt[spare]);
+    //         used[bank][copy_block * PAGES_PER_BLK + copy_page] = 1;
             
-            // used[bank][victim * PAGES_PER_BLK + i] = 0;
+    //         // used[bank][victim * PAGES_PER_BLK + i] = 0;
 
-            free(buf);
-        }
-    }
+    //         free(buf);
+    //     }
+    // }
 
-	nand_erase(bank, victim);
+	// nand_erase(bank, victim);
 
-    for (int i = 0; i < PAGES_PER_BLK; i++) {
-        used[bank][victim * PAGES_PER_BLK + i] = 0;
-    }
+    // for (int i = 0; i < PAGES_PER_BLK; i++) {
+    //     used[bank][victim * PAGES_PER_BLK + i] = 0;
+    // }
 
-    data_freeblock[bank]++;
+    // data_freeblock[bank]++;
 
 	return;
 }
