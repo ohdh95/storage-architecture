@@ -32,9 +32,9 @@ enum zone_state {
 };
 
 struct zone_desc {
-	int state;
-	int slba;
-	int wp;
+	int state; // zone state
+	int slba; // starting lba
+	int wp; // write pointer (sector offset)
 };
 
 /* ZNS */

@@ -12,7 +12,7 @@
 STUDENT_ID = 2021310325
 
 CC	= gcc
-CFLAGS	= -g -O2 -Wall -std=c99
+CFLAGS	= -g -O0 -Wall -std=c99
 RM	= rm
 TAR	= tar
 
@@ -33,4 +33,4 @@ submit:
 	ls -l $(STUDENT_ID).tar.gz
 
 clean:
-	$(RM) -f $(TARGET) $(STUDENT_ID).tar.gz $(OBJS)
+	$(RM) -f $(TARGET) $(STUDENT_ID).tar.gz $(OBJS) *.txt
