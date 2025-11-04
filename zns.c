@@ -25,7 +25,9 @@ int NUM_FCG; // number of chip
 /********** do not touch ***********/
 int* zone_map;
 int* log_map;
+int** log_buf;
 int* log_pointer;
+u8** log_bitmap;
 struct zone_desc* desc_table;
 int open_zone_count = 0;
 u32** zone_buf;
@@ -117,10 +119,22 @@ void zns_init(int nbank, int nblk, int npage, int dzone, int max_open_zone)
 		log_map[i] = -1; // 초기값 설정
 	}
 
+	log_buf = (int**)malloc(sizeof(int*) * MAX_ZONE);
+
+	for (int i = 0; i < MAX_ZONE; i++) {
+		log_buf[i] = (u32*)malloc(SECT_SIZE * NSECT);
+	}
+
 	log_pointer = (int*)malloc(sizeof(int) * MAX_ZONE);
 
 	for (int i = 0; i < MAX_ZONE; i++) {
 		log_pointer[i] = 0; // 초기값 설정
+	}
+
+	log_bitmap = (u8**)malloc(sizeof(u8*) * MAX_ZONE);
+
+	for (int i = 0; i < MAX_ZONE; i++) {
+		log_bitmap[i] = (u8*)malloc(sizeof(u8) * NSECT * NPAGE * DEG_ZONE);
 	}
 
 	desc_table = (struct zone_desc*)malloc(sizeof(struct zone_desc) * MAX_ZONE);
@@ -213,6 +227,69 @@ int zns_write(int start_lba, int nsect, u32 *data)
 	}
 
 	else {
+		if (desc_table[zone].state == ZONE_TLOPEN) {
+			// printf("존 %d이 풀 상태입니다\n", zone);
+			int i;
+
+			for (i = 0; i < nsect; i++) {
+				log_buf[zone][log_pointer[zone] % NSECT] = data[i];
+
+				if (log_pointer[zone] % NSECT == NSECT - 1) {
+					int write_lpn = (start_lba + i) / NSECT;
+					int write_bank = write_lpn % DEG_ZONE + fcg * DEG_ZONE;
+					int write_block = log_map[zone];
+					int write_page = write_lpn / DEG_ZONE;
+					int spare = 0;
+
+					nand_write(write_bank, write_block, write_page, log_buf[zone], &spare);
+				}
+				
+				log_pointer[zone]++;
+				
+			}
+
+			u8* ptr = &log_bitmap[zone][log_pointer[zone]];
+
+			while (*ptr == 1) {
+				int sector_data;
+				int spare = 0;
+
+				zns_read(start_lba + i, 1, &sector_data);
+
+				log_buf[zone][log_pointer[zone] % NSECT] = sector_data;
+
+				if (log_pointer[zone] % NSECT == NSECT - 1) {
+					int write_lpn = (start_lba + i) / NSECT;
+					int write_bank = write_lpn % DEG_ZONE + fcg * DEG_ZONE;
+					int write_block = log_map[zone];
+					int write_page = write_lpn / DEG_ZONE;
+
+					nand_write(write_bank, write_block, write_page, log_buf[zone], &spare);
+
+					
+				}
+
+				log_pointer[zone]++;
+				i++;
+				ptr++;
+			}
+
+			desc_table[zone].wp = desc_table[zone].slba + log_pointer[zone];
+
+			if (desc_table[zone].wp == desc_table[zone].slba + NSECT * NPAGE * DEG_ZONE) {
+				zns_reset(desc_table[zone].slba);
+
+				desc_table[zone].state = ZONE_FULL;
+				zone_map[zone] = log_map[zone];
+				log_map[zone] = -1;
+				log_pointer[zone] = 0;
+			}
+
+			free(buf);
+
+			return 0;
+		}
+
 		if (desc_table[zone].state != ZONE_OPEN) {
 			// printf("존 %d이 오픈 상태가 아닙니다\n", zone);
 			free(buf);
@@ -293,7 +370,17 @@ void zns_read(int start_lba, int nsect, u32 *data)
 		}
 
 		else if (i == 0 || (lba_offset + i) % NSECT == 0) {
-			if (zone_buf_use[zone] == 1 && (lba_offset + i) / NSECT == zone_buf_start[zone]) {
+			if (log_map[zone] != -1) {
+				int read_lpn = (lba_offset + i) / NSECT;
+				int read_bank = read_lpn % DEG_ZONE + fcg * DEG_ZONE;
+				int read_block = log_map[zone];
+				int read_page = read_lpn / DEG_ZONE;
+				int spare = 0;
+
+				nand_read(read_bank, read_block, read_page, buf, &spare);
+			}
+
+			else if (zone_buf_use[zone] == 1 && (lba_offset + i) / NSECT == zone_buf_start[zone]) {
 				for (int j = 0; j < NSECT; j++) {
 					buf[j] = zone_buf[zone][j];
 				}
@@ -343,7 +430,9 @@ int zns_reset(int lba)
 
 	// open_zone_count--;
 
-	nand_erase(bank, block);
+	for (int i = 0; i < DEG_ZONE; i++) {
+		nand_erase(bank + i, block);
+	}
 
 	enqueue(&free_block_queues[fcg], block);
 
@@ -381,23 +470,108 @@ int zns_izc(int src_zone, int dest_zone, int copy_len, int *copy_list)
 		return -1;
 	}
 
+	int fcg = dest_zone % NUM_FCG;
+	int block = getFront(&free_block_queues[fcg]);
+	
+	if (block == -1) {
+		// printf("FCG %d에 free block이 없습니다\n", fcg);
+		return -1; // 실패
+	}
+
+	dequeue(&free_block_queues[fcg]);
+	
+	zone_map[dest_zone] = block;
+
+	open_zone_count++;
+	// printf("open_zone_count: %d\n", open_zone_count);
+
+	desc_table[dest_zone].state = ZONE_OPEN;
+
 	int src_lba = desc_table[src_zone].slba;
 	int dest_lba = desc_table[dest_zone].slba;
-	int index = 0;
+	int* buf = (int*)malloc(SECT_SIZE * NSECT);
+
+	for (int i = 0; i < NSECT; i++) {
+		buf[i] = 0xFFFFFFFF;
+	}
 
 	for (int i = 0; i < copy_len; i++) {
 		u32 sector_data;
 
-		zns_read(copy_list[i], 1, &sector_data);
+		zns_read(src_lba + copy_list[i], 1, buf + (i % NSECT));
 
-		zns_write(dest_lba + index, 1, &sector_data);
-		
-		index++;
+		zns_write(dest_lba + i, 1, buf + (i % NSECT));
 	}
+
+	desc_table[dest_zone].wp = desc_table[dest_zone].slba + copy_len;
 
 	zns_reset(src_lba);
 }
 
 int zns_tl_open(int zone, u8 *valid_arr)
 {
+	if (desc_table[zone].state != ZONE_FULL) {
+		// printf("존 %d이 풀 상태가 아닙니다\n", zone);
+		return -1; // 실패
+	}
+
+	int fcg = zone % NUM_FCG;
+	int block = getFront(&free_block_queues[fcg]);
+	int lba;
+	u8* ptr = valid_arr;
+
+	if (block == -1) {
+		// printf("FCG %d에 free block이 없습니다\n", fcg);
+		return -1; // 실패
+	}
+
+	if (open_zone_count == MAX_OPEN_ZONE) {
+		// printf("오픈 가능한 존의 최대 개수에 도달했습니다\n");
+		return -1; // 실패
+	}
+
+	for (int i = 0; i < NSECT * NPAGE * DEG_ZONE; i++) {
+		log_bitmap[zone][i] = ptr[i];
+	}
+
+	dequeue(&free_block_queues[fcg]);
+	
+	
+
+	open_zone_count++;
+	// printf("open_zone_count: %d\n", open_zone_count);
+
+	desc_table[zone].state = ZONE_TLOPEN;
+	lba = desc_table[zone].slba;
+	open_zone_count++;
+	log_pointer[zone] = 0;
+	// desc_table[zone].wp = desc_table[zone].slba;
+
+	while (*ptr == 1) {
+		int sector_data;
+		int spare = 0;
+
+		zns_read(lba, 1, &sector_data);
+
+		log_buf[zone][log_pointer[zone] % NSECT] = sector_data;
+
+		if (log_pointer[zone] % NSECT == NSECT - 1) {
+			int write_lpn = lba / NSECT;
+			int write_bank = write_lpn % DEG_ZONE + fcg * DEG_ZONE;
+			int write_block = block;
+			int write_page = write_lpn / DEG_ZONE;
+
+			nand_write(write_bank, write_block, write_page, log_buf[zone], &spare);
+		}
+
+		log_pointer[zone]++;
+		lba++;
+		ptr++;
+	}
+
+	log_map[zone] = block;
+
+	desc_table[zone].wp = desc_table[zone].slba + log_pointer[zone];
+
+	return 0;
 }
