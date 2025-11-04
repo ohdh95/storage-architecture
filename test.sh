@@ -1,3 +1,5 @@
+make -B
+
 ./zns_test ../lab5_tc/input1.txt 1.txt
 diff 1.txt ../lab5_tc/output1.txt > result1.txt
 

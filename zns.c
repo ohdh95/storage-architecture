@@ -47,10 +47,18 @@ int isEmpty(Queue* q) {
     return (q->size == 0);
 }
 
+int getFront(Queue* q) {
+	if (isEmpty(q)) {
+		// printf("오류: 큐가 비어있습니다 (Get Front 실패)\n");
+		return -1; // 오류 값
+	}
+	return q->data[q->front];
+}
+
 int enqueue(Queue* q, int data) {
     // 1. 큐가 꽉 찼는지 확인
     if (isFull(q)) {
-        printf("오류: 큐가 꽉 찼습니다 (Enqueue 실패)\n");
+        // printf("오류: 큐가 꽉 찼습니다 (Enqueue 실패)\n");
         return 0; // 실패
     }
     
@@ -62,14 +70,13 @@ int enqueue(Queue* q, int data) {
     q->data[q->rear] = data;
     q->size++; // 크기 1 증가
     
-    // printf("%d enqueue 완료 (front: %d, rear: %d, size: %d)\n", data, q->front, q->rear, q->size);
     return 1; // 성공
 }
 
 int dequeue(Queue* q) {
     // 1. 큐가 비어있는지 확인
     if (isEmpty(q)) {
-        printf("오류: 큐가 비어있습니다 (Dequeue 실패)\n");
+        // printf("오류: 큐가 비어있습니다 (Dequeue 실패)\n");
         return -1; // 오류 값
     }
     
@@ -80,7 +87,6 @@ int dequeue(Queue* q) {
     q->front = (q->front + 1) % NBLK;
     q->size--; // 크기 1 감소
     
-    // printf("%d dequeue 완료 (front: %d, rear: %d, size: %d)\n", data, q->front, q->rear, q->size);
     return data;
 }
 
@@ -152,6 +158,7 @@ int zns_write(int start_lba, int nsect, u32 *data)
 	// int bank = lpn_offset % DEG_ZONE + fcg * DEG_ZONE;
 	int block;
 	// int page = lpn_offset / DEG_ZONE;
+	int start_lpn_offset = (desc_table[zone].wp - (start_lba - lba_offset)) / NSECT;
 	u32* buf = (u32*)malloc(SECT_SIZE * NSECT);
 
 	for (int i = 0; i < NSECT; i++) {
@@ -159,27 +166,36 @@ int zns_write(int start_lba, int nsect, u32 *data)
 	}
 
 	if (zone_map[zone] == -1) {
-		block = dequeue(&free_block_queues[fcg]);
+		block = getFront(&free_block_queues[fcg]);
 
 		if (block == -1) {
-			printf("FCG %d에 free block이 없습니다\n", fcg);
+			// printf("FCG %d에 free block이 없습니다\n", fcg);
 			free(buf);
 			return -1; // 실패
 		}
 
 		if (open_zone_count == MAX_OPEN_ZONE) {
+			// printf("오픈 가능한 존의 최대 개수에 도달했습니다\n");
 			free(buf);
 			return -1; // 실패
 		}
 
+		if (desc_table[zone].wp - (start_lba - lba_offset) != lba_offset) {
+			// printf("존 %d의 쓰기 포인터 위치가 올바르지 않습니다\n", zone);
+			free(buf);
+			return -1; // 실패
+		}
+
+		dequeue(&free_block_queues[fcg]);
+		
 		zone_map[zone] = block;
 
 		open_zone_count++;
 		// printf("open_zone_count: %d\n", open_zone_count);
 
 		desc_table[zone].state = ZONE_OPEN;
-		desc_table[zone].slba = start_lba - lba_offset;
-		desc_table[zone].wp = start_lba - lba_offset;
+		// desc_table[zone].slba = start_lba - lba_offset;
+		// desc_table[zone].wp = start_lba - lba_offset;
 	}
 
 	else {
@@ -196,6 +212,16 @@ int zns_write(int start_lba, int nsect, u32 *data)
 
 		block = zone_map[zone];
 	}
+
+	// for (int i = 0; i < lpn_offset - start_lpn_offset; i++) {
+	// 	int write_lpn = start_lpn_offset + i;
+	// 	int write_bank = write_lpn % DEG_ZONE + fcg * DEG_ZONE;
+	// 	int write_block = block;
+	// 	int write_page = write_lpn / DEG_ZONE;
+	// 	int spare = 0;
+		
+	// 	nand_write(write_bank, write_block, write_page, buf, &spare);
+	// }
 
 	if (zone_buf_use[zone] == 1) {
 		for (int i = 0; i < NSECT; i++) {
@@ -308,6 +334,10 @@ int zns_reset(int lba)
 	desc_table[zone].state = ZONE_EMPTY;
 	desc_table[zone].slba = zone * ZONE_SIZE;
 	desc_table[zone].wp = zone * ZONE_SIZE;
+
+	zone_map[zone] = -1;
+
+	// open_zone_count--;
 
 	nand_erase(bank, block);
 
