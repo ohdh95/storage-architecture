@@ -24,6 +24,8 @@ int MAX_OPEN_ZONE;
 int NUM_FCG; // number of chip
 /********** do not touch ***********/
 int* zone_map;
+int* log_map;
+int* log_pointer;
 struct zone_desc* desc_table;
 int open_zone_count = 0;
 u32** zone_buf;
@@ -107,6 +109,18 @@ void zns_init(int nbank, int nblk, int npage, int dzone, int max_open_zone)
 
 	for (int i = 0; i < MAX_ZONE; i++) {
 		zone_map[i] = -1; // 초기값 설정
+	}
+
+	log_map = (int*)malloc(sizeof(int) * MAX_ZONE);
+
+	for (int i = 0; i < MAX_ZONE; i++) {
+		log_map[i] = -1; // 초기값 설정
+	}
+
+	log_pointer = (int*)malloc(sizeof(int) * MAX_ZONE);
+
+	for (int i = 0; i < MAX_ZONE; i++) {
+		log_pointer[i] = 0; // 초기값 설정
 	}
 
 	desc_table = (struct zone_desc*)malloc(sizeof(struct zone_desc) * MAX_ZONE);
@@ -212,16 +226,6 @@ int zns_write(int start_lba, int nsect, u32 *data)
 
 		block = zone_map[zone];
 	}
-
-	// for (int i = 0; i < lpn_offset - start_lpn_offset; i++) {
-	// 	int write_lpn = start_lpn_offset + i;
-	// 	int write_bank = write_lpn % DEG_ZONE + fcg * DEG_ZONE;
-	// 	int write_block = block;
-	// 	int write_page = write_lpn / DEG_ZONE;
-	// 	int spare = 0;
-		
-	// 	nand_write(write_bank, write_block, write_page, buf, &spare);
-	// }
 
 	if (zone_buf_use[zone] == 1) {
 		for (int i = 0; i < NSECT; i++) {
@@ -361,6 +365,37 @@ void zns_get_desc(int lba, int nzone, struct zone_desc *descs)
 
 int zns_izc(int src_zone, int dest_zone, int copy_len, int *copy_list)
 {
+	if (open_zone_count == MAX_OPEN_ZONE) {
+		return -1;
+	}
+
+	if (src_zone == dest_zone) {
+		return -1;
+	}
+
+	if (desc_table[src_zone].state != ZONE_FULL) {
+		return -1;
+	}
+
+	if (desc_table[dest_zone].state != ZONE_EMPTY) {
+		return -1;
+	}
+
+	int src_lba = desc_table[src_zone].slba;
+	int dest_lba = desc_table[dest_zone].slba;
+	int index = 0;
+
+	for (int i = 0; i < copy_len; i++) {
+		u32 sector_data;
+
+		zns_read(copy_list[i], 1, &sector_data);
+
+		zns_write(dest_lba + index, 1, &sector_data);
+		
+		index++;
+	}
+
+	zns_reset(src_lba);
 }
 
 int zns_tl_open(int zone, u8 *valid_arr)
