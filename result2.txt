@@ -1,8 +1,0 @@
-43,45c43,45
-< Read(16,16): [ 69 f4 7b 35 f8 7d 56 d7 ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ]
-< Read(32,16): [ e0 7d ffffffff ffffffff 8c d0 18 6d 68 c3 10 62 4e bf e7 fe ]
-< Read(48,16): [ 86 1b d0 89 37 22 ab 1e 3f 14 12 ba 49  a ffffffff ffffffff ]
----
-> Read(16,16): [ 69 f4 7b 35 f8 7d 56 d7 d5 8d 74 2b a7 10 c2 63 ]
-> Read(32,16): [ e0 7d 8a 25 8c d0 18 6d 68 c3 10 62 4e bf e7 fe ]
-> Read(48,16): [ 86 1b d0 89 37 22 ab 1e 3f 14 12 ba 49  a fa 8b ]
