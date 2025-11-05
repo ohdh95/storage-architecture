@@ -122,7 +122,7 @@ void zns_init(int nbank, int nblk, int npage, int dzone, int max_open_zone)
 	log_buf = (int**)malloc(sizeof(int*) * MAX_ZONE);
 
 	for (int i = 0; i < MAX_ZONE; i++) {
-		log_buf[i] = (u32*)malloc(SECT_SIZE * NSECT);
+		log_buf[i] = (int*)malloc(SECT_SIZE * NSECT);
 	}
 
 	log_pointer = (int*)malloc(sizeof(int) * MAX_ZONE);
@@ -182,11 +182,11 @@ int zns_write(int start_lba, int nsect, u32 *data)
 	int zone = lba_to_zone(start_lba);
 	int fcg = zone % NUM_FCG;
 	int lba_offset = start_lba - zone * DEG_ZONE * NPAGE * NSECT;
-	int lpn_offset = lba_offset / NSECT;
+	// int lpn_offset = lba_offset / NSECT;
 	// int bank = lpn_offset % DEG_ZONE + fcg * DEG_ZONE;
 	int block;
 	// int page = lpn_offset / DEG_ZONE;
-	int start_lpn_offset = (desc_table[zone].wp - (start_lba - lba_offset)) / NSECT;
+	// int start_lpn_offset = (desc_table[zone].wp - (start_lba - lba_offset)) / NSECT;
 	u32* buf = (u32*)malloc(SECT_SIZE * NSECT);
 
 	for (int i = 0; i < NSECT; i++) {
@@ -251,10 +251,19 @@ int zns_write(int start_lba, int nsect, u32 *data)
 			u8* ptr = &log_bitmap[zone][log_pointer[zone]];
 
 			while (*ptr == 1) {
+				int read_lpn = (start_lba + i) / NSECT;
+				int read_bank = read_lpn % DEG_ZONE + fcg * DEG_ZONE;
+				int read_block = zone_map[zone];
+				int read_page = read_lpn / DEG_ZONE;
+				int* buf = (int*)malloc(SECT_SIZE * NSECT);
 				int sector_data;
 				int spare = 0;
 
-				zns_read(start_lba + i, 1, &sector_data);
+				nand_read(read_bank, read_block, read_page, buf, &spare);
+				
+				sector_data = buf[(start_lba + i) % NSECT];
+
+				// zns_read(start_lba + i, 1, &sector_data);
 
 				log_buf[zone][log_pointer[zone] % NSECT] = sector_data;
 
@@ -357,7 +366,7 @@ void zns_read(int start_lba, int nsect, u32 *data)
 	int zone = lba_to_zone(start_lba);
 	int fcg = zone % NUM_FCG;
 	int lba_offset = start_lba - zone * (DEG_ZONE * NPAGE) * NSECT;
-	int lpn_offset = lba_offset / NSECT;
+	// int lpn_offset = lba_offset / NSECT;
 	// int bank = lpn_offset % DEG_ZONE + fcg * DEG_ZONE;
 	int block = zone_map[zone];
 	// int page = lpn_offset / (DEG_ZONE);
@@ -489,15 +498,13 @@ int zns_izc(int src_zone, int dest_zone, int copy_len, int *copy_list)
 
 	int src_lba = desc_table[src_zone].slba;
 	int dest_lba = desc_table[dest_zone].slba;
-	int* buf = (int*)malloc(SECT_SIZE * NSECT);
+	u32* buf = (u32*)malloc(SECT_SIZE * NSECT);
 
 	for (int i = 0; i < NSECT; i++) {
 		buf[i] = 0xFFFFFFFF;
 	}
 
 	for (int i = 0; i < copy_len; i++) {
-		u32 sector_data;
-
 		zns_read(src_lba + copy_list[i], 1, buf + (i % NSECT));
 
 		zns_write(dest_lba + i, 1, buf + (i % NSECT));
@@ -506,6 +513,8 @@ int zns_izc(int src_zone, int dest_zone, int copy_len, int *copy_list)
 	desc_table[dest_zone].wp = desc_table[dest_zone].slba + copy_len;
 
 	zns_reset(src_lba);
+
+	return 0;
 }
 
 int zns_tl_open(int zone, u8 *valid_arr)
@@ -538,17 +547,18 @@ int zns_tl_open(int zone, u8 *valid_arr)
 	
 	
 
-	open_zone_count++;
+	// open_zone_count++;
 	// printf("open_zone_count: %d\n", open_zone_count);
 
 	desc_table[zone].state = ZONE_TLOPEN;
 	lba = desc_table[zone].slba;
 	open_zone_count++;
+	// printf("open_zone_count: %d\n", open_zone_count);
 	log_pointer[zone] = 0;
-	// desc_table[zone].wp = desc_table[zone].slba;
+	desc_table[zone].wp = desc_table[zone].slba;
 
 	while (*ptr == 1) {
-		int sector_data;
+		u32 sector_data;
 		int spare = 0;
 
 		zns_read(lba, 1, &sector_data);
