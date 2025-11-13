@@ -66,7 +66,7 @@ struct cmt_entry* cmt_lru_list_evict_tail(cmt_lru_list *list) {
     }
 
     struct cmt_entry *victim = list->tail;
-    lru_list_remove(list, victim);
+    cmt_lru_list_remove(list, victim);
     
     return victim;
 }
