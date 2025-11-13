@@ -1062,7 +1062,7 @@ static uint16_t nvme_admin_cmd(FemuCtrl *n, NvmeCmd *cmd, NvmeCqe *cqe)
     case NVME_ADM_CMD_GET_FEATURES:
         femu_debug("admin cmd,get_feature\n");
         return nvme_get_feature(n, cmd, cqe);
-    case NVME_ADM_CMD_GET_LOG_PAGE:
+    case NVME_ADM_CMD_GET_LOG_PAGE:                    // get log page
         femu_debug("admin cmd,get_log_page\n");
         return nvme_get_log(n, cmd);
     case NVME_ADM_CMD_ABORT:
@@ -1131,3 +1131,10 @@ void nvme_process_sq_admin(void *opaque)
     }
 }
 
+uint64_t nvme_write_amplification(uint64_t host_writes, uint64_t gc_writes)
+{
+    uint64_t waf;
+    waf = (uint64_t)(100 * ((double)(host_writes + gc_writes) / host_writes));
+
+    return waf;
+}

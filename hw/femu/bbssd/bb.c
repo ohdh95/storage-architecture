@@ -99,6 +99,27 @@ static uint16_t bb_admin_cmd(FemuCtrl *n, NvmeCmd *cmd)
     }
 }
 
+static uint16_t bb_get_log(FemuCtrl *n, NvmeCmd *cmd)
+{
+    uint8_t lid = (uint8_t)(cmd->cdw10 & 0xFF);   // DW10[7:0] = LID
+    if (lid != 0x17) {
+        return NVME_INVALID_OPCODE | NVME_DNR;
+    }
+
+    struct ssd* ssd = n->ssd;
+    uint64_t waf = nvme_write_amplification(ssd->host_writes, ssd->gc_writes);
+    femu_log("waf : %ld\n", waf);
+
+    // uint8_t list[NVME_IDENTIFY_DATA_SIZE] = {};
+    // list[22] = waf;
+
+    uint64_t prp1 = le64_to_cpu(cmd->dptr.prp1);
+    uint64_t prp2 = le64_to_cpu(cmd->dptr.prp2);
+    return dma_read_prp(n, (uint8_t*)&waf, sizeof(waf), prp1, prp2);
+
+    return NVME_SUCCESS;
+}
+
 int nvme_register_bbssd(FemuCtrl *n)
 {
     n->ext_ops = (FemuExtCtrlOps) {
@@ -108,9 +129,8 @@ int nvme_register_bbssd(FemuCtrl *n)
         .rw_check_req     = NULL,
         .admin_cmd        = bb_admin_cmd,
         .io_cmd           = bb_io_cmd,
-        .get_log          = NULL,
+        .get_log          = bb_get_log,
     };
 
     return 0;
 }
-

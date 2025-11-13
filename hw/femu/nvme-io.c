@@ -37,7 +37,7 @@ static inline void nvme_copy_cmd(NvmeCmd *dst, NvmeCmd *src)
 }
 
 static void nvme_process_sq_io(void *opaque, int index_poller)
-{
+{ // Nvme Poller (FEMU Intro slide 11 page)
     NvmeSQueue *sq = opaque;
     FemuCtrl *n = sq->ctrl;
 
@@ -501,6 +501,7 @@ static uint16_t nvme_write_uncor(FemuCtrl *n, NvmeNamespace *ns, NvmeCmd *cmd,
 
 static uint16_t nvme_io_cmd(FemuCtrl *n, NvmeCmd *cmd, NvmeRequest *req)
 {
+    // femu_log("Call nvme_io_cmd\n");
     NvmeNamespace *ns;
     uint32_t nsid = le32_to_cpu(cmd->nsid);
 

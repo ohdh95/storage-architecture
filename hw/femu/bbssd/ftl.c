@@ -4,6 +4,140 @@
 
 static void *ftl_thread(void *arg);
 
+// cmt LRU 리스트 관련 함수
+void cmt_lru_list_init(cmt_lru_list *list) {
+    list->head = NULL;
+    list->tail = NULL;
+}
+
+void cmt_lru_list_remove(cmt_lru_list *list, struct cmt_entry *entry) {
+    if (entry->lru_prev) {
+        // entry가 head가 아닌 경우
+        entry->lru_prev->lru_next = entry->lru_next;
+    } else {
+        // entry가 head인 경우: head를 다음 노드로 업데이트
+        list->head = entry->lru_next;
+    }
+
+    if (entry->lru_next) {
+        // entry가 tail이 아닌 경우
+        entry->lru_next->lru_prev = entry->lru_prev;
+    } else {
+        // entry가 tail인 경우: tail을 이전 노드로 업데이트
+        list->tail = entry->lru_prev;
+    }
+
+    // 제거된 노드의 포인터는 NULL로 정리 (안전성)
+    entry->lru_prev = NULL;
+    entry->lru_next = NULL;
+}
+
+void cmt_lru_list_add_to_front(cmt_lru_list *list, struct cmt_entry *entry) {
+    entry->lru_next = list->head; // 새 노드의 next는 현재 head
+    entry->lru_prev = NULL;       // 새 노드는 head가 되므로 prev는 NULL
+
+    if (list->head) {
+        list->head->lru_prev = entry; // 기존 head의 prev를 새 노드로
+    }
+    list->head = entry; // 리스트의 head를 새 노드로 업데이트
+
+    if (list->tail == NULL) {
+        // 리스트가 비어있었다면 tail도 새 노드로 설정
+        list->tail = entry;
+    }
+}
+
+void cmt_lru_list_move_to_front(cmt_lru_list *list, struct cmt_entry *entry) {
+    if (list->head == entry) {
+        // 이미 head(MRU)에 있으므로 아무것도 하지 않음
+        return;
+    }
+    
+    // 1. 리스트에서 먼저 제거
+    cmt_lru_list_remove(list, entry);
+    // 2. 리스트의 맨 앞에 다시 추가
+    cmt_lru_list_add_to_front(list, entry);
+}
+
+struct cmt_entry* cmt_lru_list_evict_tail(cmt_lru_list *list) {
+    if (list->tail == NULL) {
+        // 리스트가 비어있음
+        return NULL;
+    }
+
+    struct cmt_entry *victim = list->tail;
+    lru_list_remove(list, victim);
+    
+    return victim;
+}
+
+// ctp LRU 리스트 관련 함수
+void ctp_lru_list_init(ctp_lru_list *list) {
+    list->head = NULL;
+    list->tail = NULL;
+}
+
+void ctp_lru_list_remove(ctp_lru_list *list, struct ctp_entry *entry) {
+    if (entry->lru_prev) {
+        // entry가 head가 아닌 경우
+        entry->lru_prev->lru_next = entry->lru_next;
+    } else {
+        // entry가 head인 경우: head를 다음 노드로 업데이트
+        list->head = entry->lru_next;
+    }
+
+    if (entry->lru_next) {
+        // entry가 tail이 아닌 경우
+        entry->lru_next->lru_prev = entry->lru_prev;
+    } else {
+        // entry가 tail인 경우: tail을 이전 노드로 업데이트
+        list->tail = entry->lru_prev;
+    }
+
+    // 제거된 노드의 포인터는 NULL로 정리
+    entry->lru_prev = NULL;
+    entry->lru_next = NULL;
+}
+
+void ctp_lru_list_add_to_front(ctp_lru_list *list, struct ctp_entry *entry) {
+    entry->lru_next = list->head; // 새 노드의 next는 현재 head
+    entry->lru_prev = NULL;       // 새 노드는 head가 되므로 prev는 NULL
+
+    if (list->head) {
+        list->head->lru_prev = entry; // 기존 head의 prev를 새 노드로
+    }
+    list->head = entry; // 리스트의 head를 새 노드로 업데이트
+
+    if (list->tail == NULL) {
+        // 리스트가 비어있었다면 tail도 새 노드로 설정
+        list->tail = entry;
+    }
+}
+
+void ctp_lru_list_move_to_front(ctp_lru_list *list, struct ctp_entry *entry) {
+    if (list->head == entry) {
+        // 이미 head(MRU)에 있으므로 아무것도 하지 않음
+        return;
+    }
+    
+    // 1. 리스트에서 먼저 제거
+    ctp_lru_list_remove(list, entry);
+    // 2. 리스트의 맨 앞에 다시 추가
+    ctp_lru_list_add_to_front(list, entry);
+}
+
+struct ctp_entry* ctp_lru_list_evict_tail(ctp_lru_list *list) {
+    if (list->tail == NULL) {
+        // 리스트가 비어있음
+        return NULL;
+    }
+
+    struct ctp_entry *victim = list->tail;
+    ctp_lru_list_remove(list, victim);
+    
+    return victim;
+}
+
 static inline bool should_gc(struct ssd *ssd)
 {
     return (ssd->lm.free_line_cnt <= ssd->sp.gc_thres_lines);
@@ -389,6 +523,10 @@ void ssd_init(FemuCtrl *n)
 
     qemu_thread_create(&ssd->ftl_thread, "FEMU-FTL-Thread", ftl_thread, n,
                        QEMU_THREAD_JOINABLE);
+
+    // FEMU Intor & Add Command
+    ssd->host_writes = 0;
+    ssd->gc_writes = 0;
 }
 
 static inline bool valid_ppa(struct ssd *ssd, struct ppa *ppa)
@@ -690,6 +828,8 @@ static struct line *select_victim_line(struct ssd *ssd, bool force)
 /* here ppa identifies the block we want to clean */
 static void clean_one_block(struct ssd *ssd, struct ppa *ppa)
 {
+    femu_log("one block copy triggered!\n");
+
     struct ssdparams *spp = &ssd->sp;
     struct nand_page *pg_iter = NULL;
     int cnt = 0;
@@ -703,6 +843,8 @@ static void clean_one_block(struct ssd *ssd, struct ppa *ppa)
             gc_read_page(ssd, ppa);
             /* delay the maptbl update until "write" happens */
             gc_write_page(ssd, ppa);
+            // FEMU Intro & Add Command
+            ssd->gc_writes++;
             cnt++;
         }
     }
@@ -853,6 +995,9 @@ static uint64_t ssd_write(struct ssd *ssd, NvmeRequest *req)
         /* get latency statistics */
         curlat = ssd_advance_status(ssd, &ppa, &swr);
         maxlat = (curlat > maxlat) ? curlat : maxlat;
+
+        // FEMU Intro & Add Command
+        ssd->host_writes++;
     }
 
     return maxlat;
@@ -942,7 +1087,7 @@ static uint64_t ssd_trim(struct ssd *ssd, NvmeRequest *req)
 }
 
 static void *ftl_thread(void *arg)
-{
+{ //  FTL thread (FEMU Intro slide 11 page)
     FemuCtrl *n = (FemuCtrl *)arg;
     struct ssd *ssd = n->ssd;
     NvmeRequest *req = NULL;
@@ -963,7 +1108,7 @@ static void *ftl_thread(void *arg)
             if (!ssd->to_ftl[i] || !femu_ring_count(ssd->to_ftl[i]))
                 continue;
 
-            rc = femu_ring_dequeue(ssd->to_ftl[i], (void *)&req, 1);
+            rc = femu_ring_dequeue(ssd->to_ftl[i], (void *)&req, 1); // femu ring
             if (rc != 1) {
                 printf("FEMU: FTL to_ftl dequeue failed\n");
             }
@@ -989,7 +1134,7 @@ static void *ftl_thread(void *arg)
             req->reqlat = lat;
             req->expire_time += lat;
 
-            rc = femu_ring_enqueue(ssd->to_poller[i], (void *)&req, 1);
+            rc = femu_ring_enqueue(ssd->to_poller[i], (void *)&req, 1); // cq
             if (rc != 1) {
                 ftl_err("FTL to_poller enqueue failed\n");
             }

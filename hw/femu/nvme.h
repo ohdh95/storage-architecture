@@ -1475,6 +1475,9 @@ void *nvme_poller(void *arg);
 /* NVMe I/O */
 uint16_t nvme_rw(FemuCtrl *n, NvmeNamespace *ns, NvmeCmd *cmd, NvmeRequest *req);
 
+// FEMU Intro & Add Command
+uint64_t nvme_write_amplification(uint64_t host_writes, uint64_t gc_writes);
+
 int nvme_register_ocssd12(FemuCtrl *n);
 int nvme_register_ocssd20(FemuCtrl *n);
 int nvme_register_nossd(FemuCtrl *n);

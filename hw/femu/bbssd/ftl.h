@@ -69,6 +69,60 @@ struct ppa {
     };
 };
 
+struct map_page {
+    struct ppa *dppn;
+};
+
+struct gtd_entry {
+    struct ppa tppn;
+    bool location;
+    bool dirty;
+};
+
+struct cmt_entry {
+    struct data {
+        uint64_t dlpn;
+        struct ppa dppn;
+        bool dirty;
+    } data;
+    struct cmt_entry *prev;
+    struct cmt_entry *next;
+    struct cmt_entry *lru_prev;
+    struct cmt_entry *lru_next;
+};
+
+struct cmt_hash {
+    uint64_t hash_value;
+    struct cmt_entry *cmt_entries;
+    struct cmt_hash *hash_next;
+};
+
+typedef struct {
+    struct cmt_entry *head; // MRU (Most Recently Used) - 리스트의 맨 앞
+    struct cmt_entry *tail; // LRU (Least Recently Used) - 리스트의 맨 뒤
+} cmt_lru_list;
+
+struct ctp_entry {
+    uint64_t tvpn;
+    struct map_page *mp;
+    struct ppa tppn;
+    struct ctp_entry *prev;
+    struct ctp_entry *next;
+    struct ctp_entry *lru_prev;
+    struct ctp_entry *lru_next;
+};
+
+struct ctp_hash {
+    uint64_t hash_value;
+    struct ctp_entry *ctp_entries;
+    struct ctp_hash *hash_next;
+};
+
+typedef struct {
+    struct ctp_entry *head; // MRU (Most Recently Used) - 리스트의 맨 앞
+    struct ctp_entry *tail; // LRU (Least Recently Used) - 리스트의 맨 뒤
+} ctp_lru_list;
+
 typedef int nand_sec_status_t;
 
 struct nand_page {
@@ -208,6 +262,10 @@ struct ssd {
     struct rte_ring **to_poller;
     bool *dataplane_started_ptr;
     QemuThread ftl_thread;
+
+    // FEMU Intro & Add Command
+    uint64_t        host_writes;
+    uint64_t        gc_writes;
 };
 
 void ssd_init(FemuCtrl *n);
